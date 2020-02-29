@@ -75,6 +75,8 @@ void RenderCode::initVulkan()
 
 	createVertexBuffer(); // Sets up the vertex buffer 
 
+	createIndexBuffer(); // Sets up the index buffer
+
 	createCommandBuffers(); // Sets of instructions which are to be executed by a queue.
 
 	createSemaphores(); // As Vulkan doesn't synchronize for us (Aims for maximum performance) we have to make set up our own synchronization if we deem it to be required
@@ -129,6 +131,9 @@ void RenderCode::cleanup()
 	*/
 
 	cleanupSwapChain(); // Free swap chain resources
+
+	vkDestroyBuffer(device, indexBuffer, nullptr); // Destroy the index buffer
+	vkFreeMemory(device, indexBufferMemory, nullptr); // Free memory allocated to store the data from the index buffer 
 
 	vkDestroyBuffer(device, vertexBuffer, nullptr); // The buffer should be available for during the entire rendering process, and only should be destroyed once we have no use for it anymore. I.e. when we terminate the program.
 	vkFreeMemory(device, vertexBufferMemory, nullptr); // Free the memory allocated on the GPU for the vertexBuffer
@@ -1465,7 +1470,11 @@ void RenderCode::createCommandBuffers()
 
 		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets); // This call is used to bind vertex buffers to bindings.
 
-		vkCmdDraw(commandBuffers[i], 3, 1, 0, 0); /**DRAW THE TRIANGLE***/
+		vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16); // You can only have one idnex buffer, apparently
+
+		//vkCmdDraw(commandBuffers[i], 3, 1, 0, 0); /**DRAW THE TRIANGLE***/
+
+		vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffers[i]); // End render pass
 
@@ -1652,46 +1661,32 @@ void RenderCode::onWindowResized(GLFWwindow * window, int width, int height)
 */
 void RenderCode::createVertexBuffer()
 {
-	VkBufferCreateInfo bufferInfo = {};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO; // Vertex buffer structure
-	bufferInfo.size = sizeof(vertices[0]) * vertices.size(); // Total memory in bytes of the vertices array. IT would be ...sizeof(Vertex) * sizeof(vertices). So the size of the Vertex struct in bytes multiplied by the amount of individual vertex elements in the array.
-	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT; // The purpose of the buffer, take note that you can have more than a single usage via  bitwise or. In our case we just wanted it to be used for our vertex data.
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // Allows the access for the stcuture to only be given to a single queue at a time. In our case this would be just the Graphcis queue.
+	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size(); // Size required for allocating the vertex buffer to GPU memory
 
-	if (vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS)
-	{
-		throw std::runtime_error("Failed to create vertex buffer!");
-	}
+	VkBuffer stagingBuffer; // temporary buffer in host memory
+	VkDeviceMemory stagingBufferMemory;
 
-	/*Will compute the amount of memory required by our vertex buffer structure*/
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(device, vertexBuffer, &memRequirements);
-
-	/*We know the requirements in terms of memory for our application and the supported memory types on the GPU*/
-	/*Therefore we can now start allocating the memory on the GPU of our vertex buffer*/
-	VkMemoryAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-	allocInfo.allocationSize = memRequirements.size; // The size of the data in the container
-	allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT); // The type of memory allocation
-
-	if (vkAllocateMemory(device, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS)
-	{
-		throw std::runtime_error("Failed to allcoate vertex buffer memory!");
-	}
-
-	/*If memory allocation was succesful we can now associate this memory on the GPU with a handle*/
-	vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0); // The 4th paramater is some sort of alignment 
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 	void* data;
-	vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size,0, &data); // Map the vertex data to the buffer
-	memcpy(data, vertices.data(), (size_t)bufferInfo.size); // Copy the data to the locaiton we now reference via the data pointer
-	vkUnmapMemory(device, vertexBufferMemory); // and then unmap the data
+	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data); // Map the vertex data to the buffer
+		memcpy(data, vertices.data(), (size_t) bufferSize); // Copy the data to the locaiton we now reference via the data pointer
+	vkUnmapMemory(device, stagingBufferMemory); // and then unmap the data
 
 	/*The copy may not happen immediately. One way to handle it is to specify heap memory that is host-coherent as we have above!!!*/
 	/*This may lead to worse memory than explicit flushing, but leave that be for now*/
 
+	/*The type of memory that would beused is device memory for the vertex buffer now. This means we cannot map memory using the vertex buffer, but we can get data from the staging buffer?*/
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory); // The vertex buffer will be used as destination buffer for the transfer
 
+	/*Copy from host to device*/
+	copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+	/*Clean up*/
+	vkDestroyBuffer(device, stagingBuffer, nullptr);
+	vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+	/*At this point data will be read from the GPU, unlike vefore when we were storing and reading from CPU-side*/
 }
 
 /*
@@ -1715,6 +1710,108 @@ uint32_t RenderCode::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags p
 
 	// Else throw an exception
 	throw std::runtime_error("Failed to find suitable memory type!");
+}
+
+void RenderCode::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer & buffer, VkDeviceMemory & bufferMemory)
+{
+
+	VkBufferCreateInfo bufferInfo = {};
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO; // Vertex buffer structure
+	bufferInfo.size = size; // Total memory in bytes of the vertices array. IT would be ...sizeof(Vertex) * sizeof(vertices). So the size of the Vertex struct in bytes multiplied by the amount of individual vertex elements in the array.
+	bufferInfo.usage = usage; // The purpose of the buffer, take note that you can have more than a single usage via  bitwise or. In our case we just wanted it to be used for our vertex data.
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // Allows the access for the stcuture to only be given to a single queue at a time. In our case this would be just the Graphcis queue.
+
+	if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create vertex buffer!");
+	}
+
+	/*Will compute the amount of memory required by our vertex buffer structure*/
+	VkMemoryRequirements memRequirements;
+	vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+
+	/*We know the requirements in terms of memory for our application and the supported memory types on the GPU*/
+	/*Therefore we can now start allocating the memory on the GPU of our vertex buffer*/
+	VkMemoryAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+	allocInfo.allocationSize = memRequirements.size; // The size of the data in the container
+	allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties); // The type of memory allocation
+
+	if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to allcoate vertex buffer memory!");
+	}
+
+	/*If memory allocation was succesful we can now associate this memory on the GPU with a handle*/
+	vkBindBufferMemory(device, buffer, bufferMemory, 0); // The 4th paramater is some sort of alignment 
+}
+
+
+/*Copies over data from a buffer specifed as source to one specifed as destination. It must pass the amount of data to be transferred*/
+void RenderCode::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+{
+	/*Memory transfer operations are executed using command Buffers*/
+	VkCommandBufferAllocateInfo allocInfo = {};
+
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = commandPool;
+	allocInfo.commandBufferCount = 1;
+
+	VkCommandBuffer commandBuffer;
+	vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // Tell the driver our intent to use this command buffer only a single time
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+	VkBufferCopy copyRegion = {};
+	copyRegion.srcOffset = 0;
+	copyRegion.dstOffset = 0;
+	copyRegion.size = size;
+
+	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion); // Copy the region of memory we want
+
+	vkEndCommandBuffer(commandBuffer); // Since we only use a single copy command, once copying has completed, we can terminate the buffer. We won't use it again.
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(graphicsQueue);
+
+	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+
+}
+
+/*Set up the index buffer*/
+void RenderCode::createIndexBuffer()
+{
+
+	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size(); // The size in bytes of the index data
+
+	/*We create a temporary buffer once more*/
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory); // Crates the staging buffer
+
+	void* data;
+	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, indices.data(), (size_t)bufferSize);
+	vkUnmapMemory(device, stagingBufferMemory);
+
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory); // Notice the usage is set to index buffer usage
+
+	copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+	vkDestroyBuffer(device, stagingBuffer, nullptr);
+	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
 

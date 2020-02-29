@@ -61,9 +61,14 @@ struct Vertex
 /*Data*/
 const std::vector<Vertex> vertices = {
 
-	{ { 0.0f, -0.5f },{ 1.0f, 0.0f, 0.0f } },
-	{ { 0.5f, 0.5f },{ 0.0f, 1.0f, 0.0f } },
-	{ { -0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } }
+	{ { -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f } },
+	{ { 0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f } },
+	{ { 0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } },
+	{ { -0.5f, 0.5f },{ 1.0f, 1.0f, 1.0f } }
+};
+
+const std::vector<uint16_t> indices = {
+	0, 1, 2, 2, 3, 0
 };
 
 /*The struct which will query the device to return which families of queues are supported*/
@@ -171,6 +176,10 @@ private: // Private data, the authro most likely intended to keep rendering sepa
 	VkBuffer vertexBuffer; // A handle referencing a vertex buffer;
 	VkDeviceMemory vertexBufferMemory; // A handle to the vertexBuffer memory on the GPU
 
+	VkBuffer indexBuffer; // Handle for the index buffer
+	VkDeviceMemory indexBufferMemory; // a handle to the index buffer memory on the gpu
+
+
 	/*Provides all the neccessary information Vulkan requires about our application*/
 	void initVulkan();
 
@@ -273,6 +282,15 @@ private: // Private data, the authro most likely intended to keep rendering sepa
 
 	/*Finds the correct GPU memory type to use, based on information passed from our application and buffer requirements that got computed during creation*/
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+	/*To create multiple buffers, as we`ll need a staging buffer and an actual buffer for the vertex buffer*/
+	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+
+	/*Will be used to copy over data from the host-side staging buffer into the vertex buffer which is using device memory*/
+	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
+	/*Creates the index buffer, this is almost identical as the vertex buffer creation*/
+	void createIndexBuffer();
 
 	/*
 	VKAPI_ATTR and VKAPI_CALL ensure that the functions has the correct signature for the API to call it.
