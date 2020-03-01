@@ -28,6 +28,8 @@ bool OBJReaderClass::readObjFile(const std::string & path, std::vector<glm::vec3
 		/*Extract the file contents string by string*/
 		while (ifs >> string)
 		{
+			OutputDebugString(string.c_str());
+
 
 			/*If EIF has  been met, do not store extra values*/
 			if (ifs.eof())
@@ -77,31 +79,27 @@ bool OBJReaderClass::readObjFile(const std::string & path, std::vector<glm::vec3
 			/*Read in the faces*/
 			if (string == "f")
 			{
+
+				OutputDebugString("Face");
+
 				uint32_t v;
 				uint32_t vt;
 				uint32_t vn;
 
-				uint32_t v1;
-				uint32_t vt1;
-				uint32_t vn1;
-
-				uint32_t v2;
-				uint32_t vt2;
-				uint32_t vn2;
-
-
 				/*Read in the indices*/
-				ifs >> v >> vt >> vn;;
+				ifs >> v >> vt >>  vn;
 
 				objVertexData vertexData(v, vt, vn);
-
 
 				data.push_back(vertexData);
 			}
 		}
 
 		/*Make sure they are not empty*/
+		//assert(vertexPositions.size() != 0 && vertexTextureCoordinates.size() == 0 && vertexNormals.size() != 0 && data.size() != 0);
+
 		assert(vertexPositions.size() != 0 && vertexTextureCoordinates.size() == 0 && vertexNormals.size() != 0 && data.size() != 0);
+
 
 		ifs.close(); // Close the file
 	}
