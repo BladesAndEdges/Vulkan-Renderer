@@ -27,8 +27,14 @@ private:
 	std::vector<glm::vec2> vertexTextureCoordinates; // texture coordinate per vertex
 	std::vector<objVertexData> data;
 
+	std::vector<std::string> stringFaceData;
+	std::vector<uint32_t> integerFaceData;
+
 	/*Reads the data from the obj file and stores it in one of the member arrays*/
 	bool readObjFile(const std::string& path, std::vector<glm::vec3> positions, std::vector<glm::vec3> normals, std::vector<glm::vec2> textureCoords);
+
+	std::vector<uint32_t> parseSubstringToIntegers(const std::vector<std::string>& substrings);
+	std::vector<objVertexData> convertIntegerDataToObjVertexData(const std::vector<uint32_t> integerData);
 
 public:
 
