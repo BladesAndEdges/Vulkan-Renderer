@@ -104,6 +104,7 @@ bool OBJReaderClass::readObjFile(const std::string & path, std::vector<glm::vec3
 
 		}
 
+		integerFaceData = parseSubstringToIntegers(stringFaceData);
 		data = convertIntegerDataToObjVertexData(integerFaceData);
 
 		/*Make sure they are not empty*/
@@ -118,13 +119,55 @@ bool OBJReaderClass::readObjFile(const std::string & path, std::vector<glm::vec3
 	return true;
 }
 
+#include <algorithm>
+
 /*
 	Parses strings in the form of
 	value//value and stores all integers inside a continous array
 */
-std::vector<uint32_t> OBJReaderClass::parseSubstringToIntegers(const std::vector<std::string>& substrings)
+std::vector<uint32_t> OBJReaderClass::parseSubstringToIntegers(std::vector<std::string>& substrings)
 {
-	return std::vector<uint32_t>();
+	/*The extracted integer values from the obj file*/
+	std::vector<uint32_t> integerData;
+
+	std::string backslash = "/"; // Character we wish to split the strings at
+	std::string whitespace = " ";// Character we wish to replace the baskslash with
+
+	/*Split up the data by replacing / instances with a whitespace*/
+	for (size_t substring = 0; substring < substrings.size(); substring++)
+	{
+		std::replace(substrings[substring].begin(), substrings[substring].end(), '/', ' '); 
+	}
+
+	std::stringstream ss; // A stringstream t
+	std::string tempString;
+
+	std::vector<std::string> stringInts;
+
+	uint32_t tempInt;
+
+	for (size_t string = 0; string < substrings.size(); string++)
+	{
+		std::stringstream temp;
+		ss.swap(temp);
+		ss << substrings[string];
+
+		while (!ss.eof())
+		{
+			ss >> tempString;
+			stringInts.push_back(tempString);
+		}
+
+		ss.str(std::string());
+	}
+
+	for (int i = 0; i < stringInts.size(); i++)
+	{
+		OutputDebugString(stringInts[i].c_str());
+		OutputDebugString("\n");
+	}
+
+	return integerData;
 }
 
 /*
