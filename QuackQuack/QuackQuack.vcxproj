@@ -122,11 +122,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="OBJReaderClass.h" />
+    <ClInclude Include="objVertexData.h" />
     <ClInclude Include="RenderCode.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="OBJReaderClass.cpp" />
+    <ClCompile Include="objVertexData.cpp" />
     <ClCompile Include="RenderCode.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

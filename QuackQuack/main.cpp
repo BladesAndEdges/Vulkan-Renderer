@@ -3,8 +3,6 @@
 
 #include <glm.hpp>
 
-#include <windows.h>
-
 /*The main entry point of our program*/
 int main()
 {

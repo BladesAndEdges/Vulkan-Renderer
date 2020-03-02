@@ -6,17 +6,7 @@
 #include <vector>
 #include <glm.hpp>
 
-
-struct objVertexData
-{
-	uint32_t v;
-	uint32_t vt;
-	uint32_t vn;
-
-	objVertexData(uint32_t pos, uint32_t tex, uint32_t norm) : v(pos), vt(tex), vn(norm) {};
-
-	objVertexData(uint32_t pos, uint32_t norm) : v(pos), vt(0), vn(norm) {};
-};
+#include "objVertexData.h"
 
 class OBJReaderClass
 {
@@ -27,7 +17,9 @@ private:
 	std::vector<glm::vec3> vertexPositions; // positons of vertices
 	std::vector<glm::vec3> vertexNormals; // normals per vertex
 	std::vector<glm::vec2> vertexTextureCoordinates; // texture coordinate per vertex
-	std::vector<objVertexData> data;
+
+	std::vector<objVertexData> data; // The face data in the form of objVertexData
+	std::vector<objVertexData> uniqueData;
 
 	std::vector<std::string> stringFaceData;
 	std::vector<uint32_t> integerFaceData;
@@ -35,8 +27,9 @@ private:
 	/*Reads the data from the obj file and stores it in one of the member arrays*/
 	bool readObjFile(const std::string& path, std::vector<glm::vec3> positions, std::vector<glm::vec3> normals, std::vector<glm::vec2> textureCoords);
 
-	std::vector<uint32_t> parseSubstringToIntegers(std::vector<std::string>& substrings);
-	std::vector<objVertexData> convertIntegerDataToObjVertexData(const std::vector<uint32_t> integerData);
+	std::vector<uint32_t> parseSubstringToIntegers(std::vector<std::string>& substrings); 
+	std::vector<objVertexData> convertIntegerDataToObjVertexData(const std::vector<uint32_t>& integerData);
+	std::vector<objVertexData> clearObjVertexDataDuplicates(const std::vector<objVertexData>& data);
 
 public:
 

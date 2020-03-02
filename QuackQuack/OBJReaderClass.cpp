@@ -1,8 +1,6 @@
 #include "OBJReaderClass.h"
 
 #include <iostream>
-#include <stdio.h>
-#include <conio.h>
 #include <fstream>
 #include <assert.h>
 #include <string>
@@ -111,6 +109,8 @@ bool OBJReaderClass::readObjFile(const std::string & path, std::vector<glm::vec3
 		/*Convert the integer values to objVertexData*/
 		data = convertIntegerDataToObjVertexData(integerFaceData);
 
+		uniqueData = clearObjVertexDataDuplicates(data);
+
 		/*Make sure none of the arrays is empty*/
 		assert(vertexPositions.size() != 0);
 		assert(vertexTextureCoordinates.size() == 0);
@@ -147,8 +147,6 @@ std::vector<uint32_t> OBJReaderClass::parseSubstringToIntegers(std::vector<std::
 
 	std::vector<std::string> stringInts;
 
-	uint32_t tempInt;
-
 	for (size_t string = 0; string < substrings.size(); string++)
 	{
 		std::stringstream temp;
@@ -180,7 +178,7 @@ std::vector<uint32_t> OBJReaderClass::parseSubstringToIntegers(std::vector<std::
 
 	Made to parse values in the form of v/vt/vn (This must be further extended to support obj files with missing values!)
 */
-std::vector<objVertexData> OBJReaderClass::convertIntegerDataToObjVertexData(const std::vector<uint32_t> integerData)
+std::vector<objVertexData> OBJReaderClass::convertIntegerDataToObjVertexData(const std::vector<uint32_t>& integerData)
 {
 	std::vector<objVertexData> convertedData;
 
@@ -203,6 +201,47 @@ std::vector<objVertexData> OBJReaderClass::convertIntegerDataToObjVertexData(con
 	assert(convertedData.size() != 0);
 
 	return convertedData;
+}
+
+std::vector<objVertexData> OBJReaderClass::clearObjVertexDataDuplicates(const std::vector<objVertexData>& data)
+{
+	/*Make sure we are not given an empty array*/
+	assert(data.size() != 0);
+
+	std::vector<objVertexData> uniqueObjVertexData;
+	uniqueObjVertexData.push_back(data[0]);
+
+	/*Loop over all data */
+	for (unsigned int i = 0; i < data.size(); i++)
+	{
+
+		/*Loop over the unique data in the array*/
+		for (unsigned int j = 0; j < uniqueObjVertexData.size(); j++)
+		{
+
+			OutputDebugString("Comparing: ");
+
+			/*If the data was already present, leave*/
+			if (data[i] == uniqueObjVertexData[j])
+			{
+				OutputDebugString("Broke out");
+				break;
+			}
+			/*Else add the newly-found index*/
+			else
+			{
+				uniqueObjVertexData.push_back(data[i]);
+			}
+		}
+	}
+
+	assert(uniqueObjVertexData.size() != 0);
+
+
+	OutputDebugString(std::to_string(uniqueObjVertexData.size()).c_str());
+
+
+	return uniqueObjVertexData;
 }
 
 OBJReaderClass::OBJReaderClass()
