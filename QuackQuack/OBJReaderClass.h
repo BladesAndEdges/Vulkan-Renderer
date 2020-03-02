@@ -14,6 +14,8 @@ struct objVertexData
 	uint32_t vn;
 
 	objVertexData(uint32_t pos, uint32_t tex, uint32_t norm) : v(pos), vt(tex), vn(norm) {};
+
+	objVertexData(uint32_t pos, uint32_t norm) : v(pos), vt(0), vn(norm) {};
 };
 
 class OBJReaderClass

@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <string>
 #include <sstream>
+#include <algorithm>
 
 #include <windows.h>
 
@@ -104,13 +105,17 @@ bool OBJReaderClass::readObjFile(const std::string & path, std::vector<glm::vec3
 
 		}
 
+		/*Extract the integer values from the face attribute strings*/
 		integerFaceData = parseSubstringToIntegers(stringFaceData);
+
+		/*Convert the integer values to objVertexData*/
 		data = convertIntegerDataToObjVertexData(integerFaceData);
 
-		/*Make sure they are not empty*/
-		//assert(vertexPositions.size() != 0 && vertexTextureCoordinates.size() == 0 && vertexNormals.size() != 0 && data.size() != 0);
-
-		assert(vertexPositions.size() != 0 && vertexTextureCoordinates.size() == 0 && vertexNormals.size() != 0 && data.size() == 0);
+		/*Make sure none of the arrays is empty*/
+		assert(vertexPositions.size() != 0);
+		assert(vertexTextureCoordinates.size() == 0);
+		assert(vertexNormals.size() != 0);
+		assert(data.size() != 0);
 
 
 		ifs.close(); // Close the file
@@ -118,8 +123,6 @@ bool OBJReaderClass::readObjFile(const std::string & path, std::vector<glm::vec3
 
 	return true;
 }
-
-#include <algorithm>
 
 /*
 	Parses strings in the form of
@@ -161,10 +164,12 @@ std::vector<uint32_t> OBJReaderClass::parseSubstringToIntegers(std::vector<std::
 		ss.str(std::string());
 	}
 
-	for (int i = 0; i < stringInts.size(); i++)
+	/*Convert to uint32_t*/
+	for (unsigned int string = 0; string < stringInts.size(); string++)
 	{
-		OutputDebugString(stringInts[i].c_str());
-		OutputDebugString("\n");
+		/*Convert value to integer*/
+		uint32_t tempInt = std::stoi(stringInts[string]);
+		integerData.push_back(tempInt);
 	}
 
 	return integerData;
@@ -178,6 +183,25 @@ std::vector<uint32_t> OBJReaderClass::parseSubstringToIntegers(std::vector<std::
 std::vector<objVertexData> OBJReaderClass::convertIntegerDataToObjVertexData(const std::vector<uint32_t> integerData)
 {
 	std::vector<objVertexData> convertedData;
+
+	/*Loop over all integers, each 2 is a position and normal*/
+	for (unsigned int values = 0; values < integerData.size(); values += 2)
+	{
+		
+		/*Extract the two values*/
+		uint32_t v = integerData[values];
+		uint32_t vn = integerData[values + 1];
+
+		/*Store the vertex attributes for a single vertex*/
+		objVertexData objVertex(v, vn);
+
+		/*Push the data back to the arrya*/
+		convertedData.push_back(objVertex);
+
+	}
+
+	assert(convertedData.size() != 0);
+
 	return convertedData;
 }
 
