@@ -219,20 +219,29 @@ std::vector<objVertexData> OBJReaderClass::clearObjVertexDataDuplicates(const st
 		for (unsigned int j = 0; j < uniqueObjVertexData.size(); j++)
 		{
 
-			OutputDebugString("Comparing: ");
+			bool notFound = false;
+
 
 			/*If the data was already present, leave*/
 			if (data[i] == uniqueObjVertexData[j])
 			{
-				OutputDebugString("Broke out");
+				notFound = false;
 				break;
 			}
 			/*Else add the newly-found index*/
 			else
 			{
+				notFound = true;
+			}
+
+			if (notFound)
+			{
+				OutputDebugString("Added");
 				uniqueObjVertexData.push_back(data[i]);
 			}
 		}
+		// Figure out why it is infinitely adding new values
+
 	}
 
 	assert(uniqueObjVertexData.size() != 0);
