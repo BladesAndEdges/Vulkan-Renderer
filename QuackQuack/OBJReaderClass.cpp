@@ -9,10 +9,10 @@
 
 #include <windows.h>
 
-bool OBJReaderClass::readObjFile(const std::string & path, std::vector<glm::vec3> positions, std::vector<glm::vec3> normals, std::vector<glm::vec2> textureCoords)
+bool OBJReaderClass::readObjFile()
 {
 	std::ifstream ifs;
-	ifs.open(path); // Open the file for reading
+	ifs.open(fileName); // Open the file for reading
 
 	/*If a problem occured with the file being opened for reading. Most likely misspelled name*/
 	if (!ifs.is_open())
@@ -178,7 +178,7 @@ std::vector<uint32_t> OBJReaderClass::parseSubstringToIntegers(std::vector<std::
 
 	Made to parse values in the form of v/vt/vn (This must be further extended to support obj files with missing values!)
 */
-std::vector<objVertexData> OBJReaderClass::convertIntegerDataToObjVertexData(const std::vector<uint32_t>& integerData)
+std::vector<objVertexData> OBJReaderClass::convertIntegerDataToObjVertexData(const std::vector<uint32_t>& integerData) const
 {
 	std::vector<objVertexData> convertedData;
 
@@ -203,54 +203,44 @@ std::vector<objVertexData> OBJReaderClass::convertIntegerDataToObjVertexData(con
 	return convertedData;
 }
 
-std::vector<objVertexData> OBJReaderClass::clearObjVertexDataDuplicates(const std::vector<objVertexData>& data)
+std::vector<objVertexData> OBJReaderClass::clearObjVertexDataDuplicates(const std::vector<objVertexData>& data) const
 {
-	/*Make sure we are not given an empty array*/
+
 	assert(data.size() != 0);
 
-	std::vector<objVertexData> uniqueObjVertexData;
-	uniqueObjVertexData.push_back(data[0]);
+	//A local vector to store the non-duplicated values
+	std::vector<objVertexData> uniqueData;
 
-	/*Loop over all data */
-	for (unsigned int i = 0; i < data.size(); i++)
+	//Search the duplicated values
+	for (int i = 0; i < data.size(); i++)
 	{
+		//Set a flag to detect duplicates
+		bool found = false;
 
-		/*Loop over the unique data in the array*/
-		for (unsigned int j = 0; j < uniqueObjVertexData.size(); j++)
+		for (int j = 0; j < uniqueData.size(); j++)
 		{
-
-			bool notFound = false;
-
-
-			/*If the data was already present, leave*/
-			if (data[i] == uniqueObjVertexData[j])
+			/*
+			Set flag to true if such duplicate is found and
+			terminate the loop
+			*/
+			if (data[i] == uniqueData[j])
 			{
-				notFound = false;
+				found = true;
 				break;
 			}
-			/*Else add the newly-found index*/
-			else
-			{
-				notFound = true;
-			}
-
-			if (notFound)
-			{
-				OutputDebugString("Added");
-				uniqueObjVertexData.push_back(data[i]);
-			}
 		}
-		// Figure out why it is infinitely adding new values
+
+		//Add objVertexData which have not yet been found in the file
+		if (!found)
+		{
+			uniqueData.push_back(data[i]);
+		}
 
 	}
 
-	assert(uniqueObjVertexData.size() != 0);
+	assert(uniqueData.size() != 0);
 
-
-	OutputDebugString(std::to_string(uniqueObjVertexData.size()).c_str());
-
-
-	return uniqueObjVertexData;
+	return uniqueData;
 }
 
 OBJReaderClass::OBJReaderClass()
@@ -259,7 +249,7 @@ OBJReaderClass::OBJReaderClass()
 
 OBJReaderClass::OBJReaderClass(const std::string & file) : fileName(file)
 {
-	readObjFile(file, vertexPositions, vertexNormals, vertexTextureCoordinates);
+	readObjFile();
 }
 
 

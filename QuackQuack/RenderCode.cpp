@@ -1,5 +1,11 @@
 #include "RenderCode.h" // Include the definitions of the class.
 
+#define GLM_FORCE_RADIANS // Make glm functions use radians
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp> // model transformations
+
+#include <chrono>
+
 /*
 The logic behind this is that our Validation Layers are part of the system Vulkan uses
 to debug. Similarly, debug mode is created with the core purpose of running tests to ensure
@@ -67,6 +73,8 @@ void RenderCode::initVulkan()
 
 	createRenderPass(); // Sets up the amount of formats and the type which are required.
 
+	createDescriptorSetLayout(); // Should be called here as we will need it exactly after pipeline creation
+
 	createGraphicsPipeline(); // Creates a graphics pipeline object with all information about extensions, swap chains, etc.
 
 	createFramebuffers(); // Create a set of valid render targets
@@ -76,6 +84,12 @@ void RenderCode::initVulkan()
 	createVertexBuffer(); // Sets up the vertex buffer 
 
 	createIndexBuffer(); // Sets up the index buffer
+
+	createUniformBuffer(); // Set up the uniform buffer
+
+	createDescriptorPool(); // A descriptor pool is set up from which we will access descriptor sets
+
+	createDescriptorSet(); // Creates our descriptor sets
 
 	createCommandBuffers(); // Sets of instructions which are to be executed by a queue.
 
@@ -102,6 +116,8 @@ void RenderCode::mainLoop()
 	{
 		/*Checks continously for any changes that have been made and submits them immmedietely*/
 		glfwPollEvents();
+
+		updateUniformBuffer();
 
 		/*Displays the triangle to the screen*/
 		drawFrame();
@@ -131,6 +147,13 @@ void RenderCode::cleanup()
 	*/
 
 	cleanupSwapChain(); // Free swap chain resources
+
+	vkDestroyDescriptorPool(device, descriptorPool, nullptr); // Destroys the pool of descriptor sets
+
+	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr); // The descriptor set should remain available up to the point we may need to create a new graphics pipeline. (End of the program)
+
+	vkDestroyBuffer(device, uniformBuffer, nullptr); // The draw calls used by the unform buffer will be used until the end
+	vkFreeMemory(device, uniformBufferMemory, nullptr); // So both memory and buffer should be used upon exitting the program
 
 	vkDestroyBuffer(device, indexBuffer, nullptr); // Destroy the index buffer
 	vkFreeMemory(device, indexBufferMemory, nullptr); // Free memory allocated to store the data from the index buffer 
@@ -1088,7 +1111,7 @@ void RenderCode::createGraphicsPipeline()
 	rasterizer.lineWidth = 1.0f;
 
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT; //Type of face culling used
-	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE; // The order direction for vertices to be ackoledged as front-facing 
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // The order direction for vertices to be ackoledged as front-facing 
 
 													//Usefull for shadow mapping. Can be used for shadow mapping to bias them ( Removes shadow acne).
 	rasterizer.depthBiasEnable = VK_FALSE;
@@ -1156,8 +1179,8 @@ void RenderCode::createGraphicsPipeline()
 	*/
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;
-	pipelineLayoutInfo.pSetLayouts = nullptr;
+	pipelineLayoutInfo.setLayoutCount = 1; // This specifies the amount of descriptor layouts the pipeline will make use of. 
+	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 	pipelineLayoutInfo.pPushConstantRanges = 0;
 
@@ -1471,6 +1494,8 @@ void RenderCode::createCommandBuffers()
 		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets); // This call is used to bind vertex buffers to bindings.
 
 		vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16); // You can only have one idnex buffer, apparently
+
+		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr); // They are not unique to graphics pipelines. Hence we specify the bind point to be graphics, 
 
 		//vkCmdDraw(commandBuffers[i], 3, 1, 0, 0); /**DRAW THE TRIANGLE***/
 
@@ -1812,6 +1837,134 @@ void RenderCode::createIndexBuffer()
 
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+/*
+	Tells Vulkan exactly how the data inside the uniform buffer is
+	layed out.
+*/
+void RenderCode::createDescriptorSetLayout()
+{
+	VkDescriptorSetLayoutBinding uboLayoutBinding = {}; // Describes each binding. If you bind multiple, every single one of the bindings must be described
+	uboLayoutBinding.binding = 0; // The binding used inside the shader
+	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; // Tell it is a uniform buffer object
+	uboLayoutBinding.descriptorCount = 1;
+
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // Specifies which shader the descriptor will be referenced in
+	uboLayoutBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 1; // If you represent an array of uniform buffers, for example. In this case it's just going to be an array of one element
+	layoutInfo.pBindings = &uboLayoutBinding;
+
+	/*Accepts layout information, that contains the array of bindings*/
+	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create descriptor set layout!");
+	}
+
+}
+
+void RenderCode::createUniformBuffer()
+{
+	VkDeviceSize bufferSize = sizeof(UniformBufferObject); // The buffer size would be the size of the struct
+
+	createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffer, uniformBufferMemory);
+}
+
+void RenderCode::updateUniformBuffer()
+{
+
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	UniformBufferObject ubo = {};
+
+	/*Model matrix*/
+	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // first param is the rotation matrix we'll apply this to, first operations so it will be identity.
+																										// The second paramater is the angle of rotation, the third paramater is the axis around we are applying the rotation
+
+	/*View matrix*/
+	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // The first paramater is a position vector, for the eye
+																													// The second argument is the direction vector, the way we are looking towards ( point)
+																													// The third vector defines our "up" direction
+
+	/*Projection matrix*/
+	ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f); // Look with a 45-degree field of view., the aspect ratio is the width / height, the near plane is at 0.1f ( should never be 0.0 or less), and far plane is 10.0f
+
+	/*For the aspect ratio, we should use the swap chain extent, which would record new widths and heights upon resizing events from the application have been recognized*/
+
+	ubo.proj[1][1] *= -1; // Because the Y coordinate of the clip coordinates is flipped? So we flip the scaling factor for the Y axis 
+
+	/*Copy the data in the uniform buffer object*/
+
+	void* data;
+	vkMapMemory(device, uniformBufferMemory, 0, sizeof(ubo), 0, &data);
+	memcpy(data, &ubo, sizeof(ubo));
+	vkUnmapMemory(device, uniformBufferMemory);
+}
+
+void RenderCode::createDescriptorPool()
+{
+	VkDescriptorPoolSize poolSize = {};
+	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; // Does this type apply for the whole pool? So will we need separate pools for each type???
+	poolSize.descriptorCount = 1; // A single uniform buffer is being used 
+
+	VkDescriptorPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.poolSizeCount = 1;
+	poolInfo.pPoolSizes = &poolSize;
+
+	/*Maxmimum number of descriptor sets*/
+	poolInfo.maxSets = 1;
+
+	/*Create descriptor pool*/
+	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create descriptor pool!");
+	}
+
+}
+
+void RenderCode::createDescriptorSet()
+{
+	VkDescriptorSetLayout layouts[] = { descriptorSetLayout };
+	VkDescriptorSetAllocateInfo allocInfo = {};
+
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = layouts;
+
+	if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet) != VK_SUCCESS) // Descriptor sets will be automatically freed when the pool is freed
+	{
+		throw std::runtime_error("Failed to allocate descriptor set!");
+	}
+
+	VkDescriptorBufferInfo bufferInfo{};
+	bufferInfo.buffer = uniformBuffer; // The buffer name
+	bufferInfo.offset = 0; 
+	bufferInfo.range = sizeof(UniformBufferObject); // The size of the structure which hosts the data
+
+	VkWriteDescriptorSet descriptorWrite = {};
+	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite.dstSet = descriptorSet; // The descriptor set to update
+	descriptorWrite.dstBinding = 0; // The binding of the descriptor set we are udpating
+	descriptorWrite.dstArrayElement = 0;
+
+	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; // uniform buffer is the type of the descriptor we're going to change
+	descriptorWrite.descriptorCount = 1; // The amount of array elements we want to change. We only have one, so we set it to one.
+
+	descriptorWrite.pBufferInfo = &bufferInfo;
+	descriptorWrite.pImageInfo = nullptr;
+	descriptorWrite.pTexelBufferView;
+
+	vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr); // Update the descriptors
+
+
 }
 
 

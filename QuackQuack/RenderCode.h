@@ -20,19 +20,55 @@
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
+//struct Vertex
+//{
+//	glm::vec2 pos;
+//	glm::vec3 color;
+//
+//	/*Specifies the stride between values in the array*/
+//	static VkVertexInputBindingDescription getBindingDescription()
+//	{
+//		VkVertexInputBindingDescription bindingDescription = {};
+//		bindingDescription.binding = 0; // layout location basically
+//		bindingDescription.stride = sizeof(Vertex); // Distance in bytes between one entry and another
+//		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // Move between entries per vertex
+//
+//
+//		return bindingDescription;
+//	}
+//
+//	static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
+//	{
+//
+//		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+//
+//		/*Vertex position descruiption*/
+//		attributeDescriptions[0].binding = 0; // From which binding the per vertex data comes from
+//		attributeDescriptions[0].location = 0; // location directive of the input in the vertex shader
+//		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; // The type of the data, the amount of colour channels should match the number of components
+//		attributeDescriptions[0].offset = offsetof(Vertex, pos); // Calculates offset from the original struct?
+//
+//		/*Textures position description*/
+//		attributeDescriptions[1].binding = 0;
+//		attributeDescriptions[1].location = 1;
+//		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+//		attributeDescriptions[1].offset = offsetof(Vertex, color);
+//
+//		return attributeDescriptions;
+//	}
+//};
+
 struct Vertex
 {
-	glm::vec2 pos;
-	glm::vec3 color;
+	glm::vec3 pos;
+	glm::vec3 norm;
 
-	/*Specifies the stride between values in the array*/
 	static VkVertexInputBindingDescription getBindingDescription()
 	{
 		VkVertexInputBindingDescription bindingDescription = {};
-		bindingDescription.binding = 0; // layout location basically
-		bindingDescription.stride = sizeof(Vertex); // Distance in bytes between one entry and another
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // Move between entries per vertex
-
+		bindingDescription.binding = 0;
+		bindingDescription.stride = sizeof(Vertex);
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 		return bindingDescription;
 	}
@@ -40,22 +76,28 @@ struct Vertex
 	static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
 	{
 
-		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+		std::array<VkVertexInputAttributeDescription, 2> atributeDescriptions = {};
 
-		/*Vertex position descruiption*/
-		attributeDescriptions[0].binding = 0; // From which binding the per vertex data comes from
-		attributeDescriptions[0].location = 0; // location directive of the input in the vertex shader
-		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; // The type of the data, the amount of colour channels should match the number of components
-		attributeDescriptions[0].offset = offsetof(Vertex, pos); // Calculates offset from the original struct?
-
-		/*Textures position description*/
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-		return attributeDescriptions;
+		atributeDescriptions[0].binding = 0;
+		atributeDescriptions[0].location = 0;
+		atributeDescriptions[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		atributeDescriptions[0].offset = offsetof(Vertex, pos);
 	}
+};
+
+
+
+/*Uniform Buffer OBject*/
+struct UniformBufferObject
+{
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::mat4 proj;
+
+	/*
+		Data will be stored inside a buffer, and then accessed via that buffer
+		in the vertex shader.
+	*/
 };
 
 /*Data*/
@@ -158,6 +200,9 @@ private: // Private data, the authro most likely intended to keep rendering sepa
 
 	VkRenderPass renderPass; // Denotes the number and type of formats used in the rendering pass.
 
+	/*All bindings will be combined into a single descriptor set layout*/
+	VkDescriptorSetLayout descriptorSetLayout;
+
 	VkPipelineLayout pipelineLayout; // Configuration of the rendering pipeline in terms of what types of descriptor sets will be bound to the CommandBuffer	
 	VkPipeline graphicsPipeline; // Defines our GRAPHICS pipeline(We can have different types of pipelines, compute one for example) and comprises of everything that was aforementioned. It is the largest object. 
 
@@ -178,6 +223,13 @@ private: // Private data, the authro most likely intended to keep rendering sepa
 
 	VkBuffer indexBuffer; // Handle for the index buffer
 	VkDeviceMemory indexBufferMemory; // a handle to the index buffer memory on the gpu
+
+	VkBuffer uniformBuffer; // Also a handle, for the unform buffer. So are all handles just references?
+	VkDeviceMemory uniformBufferMemory;  // Will need to allocated requested amounts of memory for its purpose.
+
+	VkDescriptorPool descriptorPool; // The descriptor pool which contains the descriptor sets
+
+	VkDescriptorSet descriptorSet; //The descriptor set that will contain all ... ubos? ResourceS? Something?! 
 
 
 	/*Provides all the neccessary information Vulkan requires about our application*/
@@ -291,6 +343,19 @@ private: // Private data, the authro most likely intended to keep rendering sepa
 
 	/*Creates the index buffer, this is almost identical as the vertex buffer creation*/
 	void createIndexBuffer();
+
+	/*Describes the way the data is layed out in the unform buffer*/
+	void createDescriptorSetLayout();
+
+	/*Sets up the unofrm buffer information*/
+	void createUniformBuffer();
+
+	void updateUniformBuffer();
+
+	/*Similarly to command buffers, we cannot access them directly, so descriptor sets are allocated from a pool*/
+	void createDescriptorPool();
+
+	void createDescriptorSet();
 
 	/*
 	VKAPI_ATTR and VKAPI_CALL ensure that the functions has the correct signature for the API to call it.
