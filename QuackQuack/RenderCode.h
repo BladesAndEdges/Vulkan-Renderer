@@ -16,6 +16,8 @@
 /*GLM*/
 #include<glm.hpp>
 
+#include "Vertex.h"
+
 /*Constants are usually good to be initialized as such, instead of hard-coded values, as we may reuse them in later stages*/
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -58,33 +60,6 @@ const int HEIGHT = 600;
 //	}
 //};
 
-struct Vertex
-{
-	glm::vec3 pos;
-	glm::vec3 norm;
-
-	static VkVertexInputBindingDescription getBindingDescription()
-	{
-		VkVertexInputBindingDescription bindingDescription = {};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-		return bindingDescription;
-	}
-
-	static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
-	{
-
-		std::array<VkVertexInputAttributeDescription, 2> atributeDescriptions = {};
-
-		atributeDescriptions[0].binding = 0;
-		atributeDescriptions[0].location = 0;
-		atributeDescriptions[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		atributeDescriptions[0].offset = offsetof(Vertex, pos);
-	}
-};
-
 
 
 /*Uniform Buffer OBject*/
@@ -101,17 +76,25 @@ struct UniformBufferObject
 };
 
 /*Data*/
-const std::vector<Vertex> vertices = {
+//const std::vector<Vertex> vertices = {
+//
+//	{ { -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f } },
+//	{ { 0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f } },
+//	{ { 0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } },
+//	{ { -0.5f, 0.5f },{ 1.0f, 1.0f, 1.0f } }
+//};
 
-	{ { -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f } },
-	{ { 0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f } },
-	{ { 0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } },
-	{ { -0.5f, 0.5f },{ 1.0f, 1.0f, 1.0f } }
-};
-
-const std::vector<uint16_t> indices = {
-	0, 1, 2, 2, 3, 0
-};
+//const std::vector<Vertex> vertices = {
+//
+//	{ {-0.5f, -0.5f, 1.0f} },
+//	{ {0.5f, -0.5f , 1.0f} },
+//	{ {0.5f, 0.5f  , 1.0f} },
+//	{ {-0.5f, 0.5f , 1.0f} }
+//};
+//
+//const std::vector<uint16_t> indices = {
+//	0, 1, 2, 2, 3, 0
+//};
 
 /*The struct which will query the device to return which families of queues are supported*/
 struct QueueFamilyIndices
@@ -162,6 +145,14 @@ class RenderCode
 {
 
 private: // Private data, the authro most likely intended to keep rendering separate if the project was to develop in size, and have other components added to it.
+
+
+	/**********************************************DATA********************************/
+
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
+
+	/*********************************************DATA*********************************/
 
 	GLFWwindow* window; // The GLFW window object, which encapsulates two things: Both the window, and an OpenGL context ( By default)
 
@@ -378,6 +369,7 @@ public:
 	The constructor and destructor. They serve no purpose here, but I decicded to keep them either way.
 	*/
 	RenderCode();
+	RenderCode(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
 	~RenderCode();
 };
 

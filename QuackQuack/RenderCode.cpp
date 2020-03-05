@@ -25,7 +25,7 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif 
 
-const std::vector<const char*> validationLayers = { "VK_LAYER_LUNARG_standard_validation" }; // Contains the string name of the validation layer, provided by the creator of the SDK, which we need.
+const std::vector<const char*> validationLayers = { "VK_LAYER_LUNARG_standard_validation"}; // Contains the string name of the validation layer, provided by the creator of the SDK, which we need.
 
 const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME }; // Similarly as above, we provide a list of the required extensions which we are looking for.
 
@@ -1493,7 +1493,7 @@ void RenderCode::createCommandBuffers()
 
 		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets); // This call is used to bind vertex buffers to bindings.
 
-		vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16); // You can only have one idnex buffer, apparently
+		vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32); // You can only have one idnex buffer, apparently
 
 		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr); // They are not unique to graphics pipelines. Hence we specify the bind point to be graphics, 
 
@@ -1888,12 +1888,12 @@ void RenderCode::updateUniformBuffer()
 																										// The second paramater is the angle of rotation, the third paramater is the axis around we are applying the rotation
 
 	/*View matrix*/
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // The first paramater is a position vector, for the eye
+	ubo.view = glm::lookAt(glm::vec3(2.0f, 200.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // The first paramater is a position vector, for the eye
 																													// The second argument is the direction vector, the way we are looking towards ( point)
 																													// The third vector defines our "up" direction
 
 	/*Projection matrix*/
-	ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f); // Look with a 45-degree field of view., the aspect ratio is the width / height, the near plane is at 0.1f ( should never be 0.0 or less), and far plane is 10.0f
+	ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0f); // Look with a 45-degree field of view., the aspect ratio is the width / height, the near plane is at 0.1f ( should never be 0.0 or less), and far plane is 10.0f
 
 	/*For the aspect ratio, we should use the swap chain extent, which would record new widths and heights upon resizing events from the application have been recognized*/
 
@@ -2003,6 +2003,10 @@ void RenderCode::run()
 
 /*The constructor and destructor do nothing*/
 RenderCode::RenderCode() : physicalDevice(VK_NULL_HANDLE) // Initally no device is bound to our application
+{
+}
+
+RenderCode::RenderCode(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) : vertices(vertices), indices(indices)
 {
 }
 

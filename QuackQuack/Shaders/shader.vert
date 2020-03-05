@@ -13,8 +13,8 @@ layout(binding = 0) uniform UniformBufferObject
 
 /*This is vertex attributes*/
 /*They are properties specified in the vertex buffer, per vertex*/
-layout(location = 0) in vec2 inPosition;
-layout(location = 1) in vec3 inColor;
+layout(location = 0) in vec3 inPosition;
+//layout(location = 1) in vec3 inColor;
 
 layout(location = 0) out vec3 fragColor;
 
@@ -26,6 +26,7 @@ out gl_PerVertex
 void main() // A main function which is invoked for every vertex on
 {
 	/*Update the position of each vertex every frame*/
-	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 0.0, 1.0); // Compute final positon in clip coordinates
-	fragColor = inColor;
+	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0); // Compute final positon in clip coordinates
+
+	//fragColor = inColor;
 }
