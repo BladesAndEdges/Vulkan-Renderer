@@ -102,33 +102,30 @@ bool OBJReaderClass::readObjFile()
 					{
 						miniVertexArray.push_back(substring);
 					}
-
-					// Get rid of the strings
-					// Push to some other array
 				}
 
-				// Triangulate
+				/*Extract the integer values from the face attribute strings*/
+				integerFaceData = parseSubstringToIntegers(miniVertexArray);
+
+				/*Convert the data to a format we can use for computing separate vertices*/
+				data = convertIntegerDataToObjVertexData(integerFaceData);
+
+				/*Triangulate the face*/
+				std::vector<TriangleFacePosition> triangulatedFace = triangulate(data);
+
+				/*Add the data to one large array of triangulated data from the file*/
+				triangles.insert(triangles.end(), triangulatedFace.begin(), triangulatedFace.end());
+
 			}
 
 
 		}
 
-		/*Extract the integer values from the face attribute strings*/
-		integerFaceData = parseSubstringToIntegers(stringFaceData);
+		OutputDebugString("Hello there");
 
-		/*Convert the integer values to objVertexData*/
-		//data = convertIntegerDataToObjVertexData(integerFaceData);
+		vertices = computePositionVertices();
+		indices = computePositionIndices();
 
-		///*Convert the quads into triangles*/
-		//triangles = createTriangles();
-
-		///*Compute vertices array*/
-		//faceVerticesIndexed = convertToVertexObjects();
-
-		///*Creates the vertex data we will pass to Vulkan*/
-		//vertices = computeVertices();
-
-		///*Creates the index data wewill pass to Vulkan*/
 		//indices = computeIndices();
 
 		//assert(indices.size() == faceVerticesIndexed.size());
@@ -226,65 +223,30 @@ std::vector<objVertexData> OBJReaderClass::convertIntegerDataToObjVertexData(con
 	return convertedData;
 }
 
-std::vector<objVertexData> OBJReaderClass::clearObjVertexDataDuplicates(const std::vector<objVertexData>& data) const
+std::vector<TriangleFacePosition> OBJReaderClass::triangulate(const std::vector<objVertexData> face)
 {
+	/*Effectively the face we begin with*/
+	std::vector<TriangleFacePosition> trianglesAfterTriangulation;
 
-	assert(data.size() != 0);
-
-	//A local vector to store the non-duplicated values
-	std::vector<objVertexData> uniqueData;
-
-	//Search the duplicated values
-	for (int i = 0; i < data.size(); i++)
+	/*Go through each vertex in the face*/
+	for (unsigned int vertex = 1; vertex < face.size() - 1; vertex++) // Start at 1 as our first vertex will get reused and should not be included in the calculation as to avoid a triangle with it being twice
 	{
-		//Set a flag to detect duplicates
-		bool found = false;
+		/*A main vertex which can be any random one from them*/
+		uint32_t main = face[0].v;
 
-		for (int j = 0; j < uniqueData.size(); j++)
-		{
-			/*
-			Set flag to true if such duplicate is found and
-			terminate the loop
-			*/
-			if (data[i] == uniqueData[j])
-			{
-				found = true;
-				break;
-			}
-		}
+		/*The two other vertices that would form a triangle with the main one*/
+		uint32_t first = face[vertex].v;
+		uint32_t second = face[vertex + 1].v;
 
-		//Add objVertexData which have not yet been found in the file
-		if (!found)
-		{
-			uniqueData.push_back(data[i]);
-		}
+		/*Create a new face from the old one*/
+		TriangleFacePosition tempTriangle(main, first, second);
 
+		/*Add the new triangles produced after triangulation to the array*/
+		trianglesAfterTriangulation.push_back(tempTriangle);
 	}
 
-	assert(uniqueData.size() != 0);
-
-	return uniqueData;
-}
-
-std::vector<objVertexData> OBJReaderClass::createTriangles()
-{
-	std::vector<objVertexData> obj;
-
-	for (unsigned int vertex = 0; vertex < data.size(); vertex+=4)
-	{
-		/*Face 1*/
-		obj.push_back(data[vertex]);
-		obj.push_back(data[vertex + 1]);
-		obj.push_back(data[vertex + 2]);
-
-		/*Face 2*/
-		obj.push_back(data[vertex + 2]);
-		obj.push_back(data[vertex + 3]);
-		obj.push_back(data[vertex]);
-
-	}
-
-	return obj;
+	/*Should return a list of triangles achieved via triangulation of the face data from the file */
+	return trianglesAfterTriangulation;
 }
 
 glm::vec3 OBJReaderClass::retrieveVertexPosition(uint32_t index)
@@ -301,10 +263,6 @@ glm::vec2 OBJReaderClass::retrieveVertexTextureCoordinate(uint32_t index)
 {
 	return vertexTextureCoordinates[index];
 }
-
-//void OBJReaderClass::createMap()
-//{
-//}
 
 std::vector<Vertex> OBJReaderClass::convertToVertexObjects()
 {
@@ -334,46 +292,7 @@ std::vector<Vertex> OBJReaderClass::convertToVertexObjects()
 	return verts;
 }
 
-//std::vector<Vertex> OBJReaderClass::computeVertices()
-//{
-//	assert(faceVerticesIndexed.size() != 0);
-//
-//	//A local vector to store the non-duplicated values
-//	std::vector<Vertex> uniqueData;
-//
-//	//Search the duplicated values
-//	for (int i = 0; i < faceVerticesIndexed.size(); i++)
-//	{
-//		//Set a flag to detect duplicates
-//		bool found = false;
-//
-//		for (int j = 0; j < uniqueData.size(); j++)
-//		{
-//			/*
-//			Set flag to true if such duplicate is found and
-//			terminate the loop
-//			*/
-//			if (faceVerticesIndexed[i] == uniqueData[j])
-//			{
-//				found = true;
-//				break;
-//			}
-//		}
-//
-//		//Add objVertexData which have not yet been found in the file
-//		if (!found)
-//		{
-//			uniqueData.push_back(faceVerticesIndexed[i]);
-//		}
-//
-//	}
-//
-//	assert(uniqueData.size() != 0);
-//
-//	return uniqueData;
-//}
-
-std::vector<Vertex> OBJReaderClass::computeVertices()
+std::vector<Vertex> OBJReaderClass::computePositionVertices()
 {
 
 	std::vector < Vertex > vertexData;
@@ -388,24 +307,22 @@ std::vector<Vertex> OBJReaderClass::computeVertices()
 	return vertexData;
 }
 
-std::vector<uint32_t> OBJReaderClass::computeIndices()
+std::vector<uint32_t> OBJReaderClass::computePositionIndices()
 {
-	assert(faceVerticesIndexed.size() != 0);
-	assert(vertices.size() != 0);
+	std::vector<uint32_t> indices;
 
-	OutputDebugString("Computing Indices");
-	OutputDebugString("\n");
-
-	std::vector<uint32_t> indexData;
-
-	//Search the duplicated values
-	for (int index = 0; index < triangles.size(); index++) // 52k 
+	/*Go through each face, and push back the array to indices*/
+	for (unsigned int index = 0; index < triangles.size(); index++)
 	{
-		indexData.push_back(triangles[index].v - 1);
+		indices.push_back(triangles[index].mainVertexIndex - 1); // v0
+		indices.push_back(triangles[index].firstVertexIndex - 1); // v1
+		indices.push_back(triangles[index].secondVertexIndex - 1); // v2
 	}
 
-	return indexData;
+	return indices;
 }
+
+
 
 OBJReaderClass::OBJReaderClass()
 {

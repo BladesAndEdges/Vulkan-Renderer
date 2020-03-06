@@ -124,6 +124,7 @@
     <ClInclude Include="OBJReaderClass.h" />
     <ClInclude Include="objVertexData.h" />
     <ClInclude Include="RenderCode.h" />
+    <ClInclude Include="TriangleFacePosition.h" />
     <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
@@ -131,6 +132,7 @@
     <ClCompile Include="OBJReaderClass.cpp" />
     <ClCompile Include="objVertexData.cpp" />
     <ClCompile Include="RenderCode.cpp" />
+    <ClCompile Include="TriangleFacePosition.cpp" />
     <ClCompile Include="Vertex.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
