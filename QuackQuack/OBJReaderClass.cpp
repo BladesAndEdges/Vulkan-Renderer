@@ -82,6 +82,8 @@ bool OBJReaderClass::readObjFile()
 			/*Read in the faces*/
 			if (string == "f")
 			{
+				std::vector<std::string> miniVertexArray;
+
 				std::string line;
 
 				/*We now have the entire line after the line has been identified as describing a face*/
@@ -98,9 +100,14 @@ bool OBJReaderClass::readObjFile()
 
 					if (substring != "") // There are numerous empty strings in between, we do not wish to store them
 					{
-						stringFaceData.push_back(substring); // Store the individual string representations of each vertex's attributes
+						miniVertexArray.push_back(substring);
 					}
+
+					// Get rid of the strings
+					// Push to some other array
 				}
+
+				// Triangulate
 			}
 
 
@@ -110,19 +117,19 @@ bool OBJReaderClass::readObjFile()
 		integerFaceData = parseSubstringToIntegers(stringFaceData);
 
 		/*Convert the integer values to objVertexData*/
-		data = convertIntegerDataToObjVertexData(integerFaceData);
+		//data = convertIntegerDataToObjVertexData(integerFaceData);
 
-		/*Convert the quads into triangles*/
-		triangles = createTriangles();
+		///*Convert the quads into triangles*/
+		//triangles = createTriangles();
 
-		/*Compute vertices array*/
-		faceVerticesIndexed = convertToVertexObjects();
+		///*Compute vertices array*/
+		//faceVerticesIndexed = convertToVertexObjects();
 
-		/*Creates the vertex data we will pass to Vulkan*/
-		vertices = computeVertices();
+		///*Creates the vertex data we will pass to Vulkan*/
+		//vertices = computeVertices();
 
-		/*Creates the index data wewill pass to Vulkan*/
-		indices = computeIndices();
+		///*Creates the index data wewill pass to Vulkan*/
+		//indices = computeIndices();
 
 		//assert(indices.size() == faceVerticesIndexed.size());
 
@@ -394,7 +401,7 @@ std::vector<uint32_t> OBJReaderClass::computeIndices()
 	//Search the duplicated values
 	for (int index = 0; index < triangles.size(); index++) // 52k 
 	{
-		indexData.push_back(triangles[index].v- 1);
+		indexData.push_back(triangles[index].v - 1);
 	}
 
 	return indexData;
