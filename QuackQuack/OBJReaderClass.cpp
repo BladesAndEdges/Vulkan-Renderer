@@ -14,6 +14,8 @@ struct Vertex;
 
 bool OBJReaderClass::readObjFile()
 {
+	std::vector<Vertex> allVertexData;
+
 	std::ifstream ifs;
 	ifs.open(fileName); // Open the file for reading
 
@@ -82,8 +84,8 @@ bool OBJReaderClass::readObjFile()
 			/*Read in the faces*/
 			if (string == "f")
 			{
-				std::vector<std::string> miniVertexArray;
 
+				std::vector<std::string> miniVertexArray;
 				std::string line;
 
 				/*We now have the entire line after the line has been identified as describing a face*/
@@ -104,38 +106,27 @@ bool OBJReaderClass::readObjFile()
 					}
 				}
 
-				/*Extract the integer values from the face attribute strings*/
-				integerFaceData = parseSubstringToIntegers(miniVertexArray);
+				/*Create the vertices*/
+				std::vector<Vertex> intermediateVertexArray = figureOutHowTheFuckVerticesAraMade(miniVertexArray);
 
-				/*Convert the data to a format we can use for computing separate vertices*/
-				data = convertIntegerDataToObjVertexData(integerFaceData);
+				///*Triangulate the face, and return the vertex data which makes up a face*/
+				//std::vector<Vertex> intermediateVertexArray = triangulate(data);
 
-				/*Triangulate the face*/
-				std::vector<TriangleFacePosition> triangulatedFace = triangulate(data);
-
-				/*Add the data to one large array of triangulated data from the file*/
-				triangles.insert(triangles.end(), triangulatedFace.begin(), triangulatedFace.end());
+				///*Add every face produced after triangulation to a larger face, which is ordered */
+				//vertices.insert(allVertexData.end(), intermediateVertexArray.begin(), intermediateVertexArray.end());
 
 			}
 
 
 		}
 
-		OutputDebugString("Hello there");
+		//indices = computePositionIndices(allPositions);
 
-		vertices = computePositionVertices();
-		indices = computePositionIndices();
-
-		//indices = computeIndices();
-
-		//assert(indices.size() == faceVerticesIndexed.size());
-
-		///*Make sure none of the arrays is empty*/
-		//assert(vertexPositions.size() != 0);
-		//assert(vertexTextureCoordinates.size() == 0);
-		//assert(vertexNormals.size() != 0);
+		/*Make sure none of the arrays is empty*/
+		assert(vertexPositions.size() != 0);
+		assert(vertexTextureCoordinates.size() != 0);
+		assert(vertexNormals.size() != 0);
 		//assert(data.size() != 0);
-
 
 		ifs.close(); // Close the file
 	}
@@ -143,154 +134,80 @@ bool OBJReaderClass::readObjFile()
 	return true;
 }
 
-/*
-	Parses strings in the form of
-	value//value and stores all integers inside a continous array
-*/
-std::vector<uint32_t> OBJReaderClass::parseSubstringToIntegers(std::vector<std::string>& substrings)
+std::vector<Vertex> OBJReaderClass::figureOutHowTheFuckVerticesAraMade(std::vector<std::string>& line)
 {
-	/*The extracted integer values from the obj file*/
-	std::vector<uint32_t> integerData;
+	std::vector<Vertex> vertices;
 
-	std::string backslash = "/"; // Character we wish to split the strings at
-	std::string whitespace = " ";// Character we wish to replace the baskslash with
+	const std::string backslash = "/"; // Character we wish to split the strings at
+	const std::string whitespace = " ";// Character we wish to replace the baskslash with
 
 	/*Split up the data by replacing / instances with a whitespace*/
-	for (size_t substring = 0; substring < substrings.size(); substring++)
+	for (size_t index = 0; index < line.size(); index++)
 	{
-		std::replace(substrings[substring].begin(), substrings[substring].end(), '/', ' '); 
+		/*Search for the two backslashes*/
+		const size_t firstBackSlashIndex = line[index].find(backslash); // Find first backlsash
+		const size_t secondBackSlashIndex = line[index].find(backslash, firstBackSlashIndex + 1); // The second back slash index to be found after the first one's position
+
+		/*Extract the vertex attributes*/
+		const std::string vertexPositionIndex = line[index].substr(0, firstBackSlashIndex); // position index
+		const std::string vertexTextureCoordinateIndex = line[index].substr(firstBackSlashIndex + 1, secondBackSlashIndex - firstBackSlashIndex - 1); // texture coordinate index
+		const std::string vertexNormalIndex = line[index].substr(secondBackSlashIndex + 1); // normal index
+
+		/*Convert the values to integers*/
+		const uint32_t intgerVertexPositionIndex = std::stoi(vertexPositionIndex);
+		const uint32_t integerVertexTextureCoordinateIndex = std::stoi(vertexTextureCoordinateIndex);
+		const uint32_t intgerVertexNormalIndex = std::stoi(vertexNormalIndex);
+
+		/*The values*/
+		const glm::vec3 position = vertexPositions[intgerVertexPositionIndex - 1];
+		const glm::vec2 textureCoordinate = vertexTextureCoordinates[integerVertexTextureCoordinateIndex - 1];
+		const glm::vec3 normal = vertexNormals[intgerVertexNormalIndex - 1];
+
+
+		/*Create a new vertex and add it to the whole array*/
+		Vertex vertex(position, textureCoordinate, normal);
+		vertices.push_back(vertex);
 	}
 
-	std::stringstream ss; // A stringstream t
-	std::string tempString;
+	return vertices;
+}
 
-	std::vector<std::string> stringInts;
+std::vector<Vertex> OBJReaderClass::triangulate(const std::vector<objVertexData> face)
+{
 
-	for (size_t string = 0; string < substrings.size(); string++)
+	/*FIIIIIX THIS*/
+
+	std::vector<Vertex> triangulatedVertexData;
+
+	/*Go through the faces*/
+	for (unsigned int vertexIndex = 1; vertexIndex < face.size() - 1; vertexIndex++)
 	{
-		std::stringstream temp;
-		ss.swap(temp);
-		ss << substrings[string];
+		Vertex randomVertex(vertexPositions[face[0].v], vertexTextureCoordinates[face[0].vt], vertexNormals[0]);
+		Vertex firstNeighbourVertex(vertexPositions[vertexIndex], vertexTextureCoordinates[vertexIndex], vertexNormals[vertexIndex]);
+		Vertex secondNeighbourVertex(vertexPositions[vertexIndex + 1], vertexTextureCoordinates[vertexIndex + 1], vertexNormals[vertexIndex + 1]);
 
-		while (!ss.eof())
-		{
-			ss >> tempString;
-			stringInts.push_back(tempString);
-		}
-
-		ss.str(std::string());
+		triangulatedVertexData.push_back(randomVertex);
+		triangulatedVertexData.push_back(firstNeighbourVertex);
+		triangulatedVertexData.push_back(secondNeighbourVertex);
 	}
 
-	/*Convert to uint32_t*/
-	for (unsigned int string = 0; string < stringInts.size(); string++)
-	{
-		/*Convert value to integer*/
-		uint32_t tempInt = std::stoi(stringInts[string]);
-		integerData.push_back(tempInt);
-	}
-
-	return integerData;
+	return triangulatedVertexData;
 }
 
-/*
-	Gets an integer array, representing indices from a face line from and obj file.
-
-	Made to parse values in the form of v/vt/vn (This must be further extended to support obj files with missing values!)
-*/
-std::vector<objVertexData> OBJReaderClass::convertIntegerDataToObjVertexData(const std::vector<uint32_t>& integerData) const
-{
-	std::vector<objVertexData> convertedData;
-
-	/*Loop over all integers, each 2 is a position and normal*/
-	for (unsigned int values = 0; values < integerData.size(); values += 3)
-	{
-		
-		/*Extract the three attrbutes per vertex*/
-		uint32_t v = integerData[values]; // position
-		uint32_t vt = integerData[values + 1]; // texture coord
-		uint32_t vn = integerData[values + 2]; // normal
-
-		/*Store the vertex attributes for a single vertex*/
-		objVertexData objVertex(v, vt,  vn);
-
-		/*Push the data back to the arrya*/
-		convertedData.push_back(objVertex);
-
-	}
-
-	assert(convertedData.size() != 0);
-
-	return convertedData;
-}
-
-std::vector<TriangleFacePosition> OBJReaderClass::triangulate(const std::vector<objVertexData> face)
-{
-	/*Effectively the face we begin with*/
-	std::vector<TriangleFacePosition> trianglesAfterTriangulation;
-
-	/*Go through each vertex in the face*/
-	for (unsigned int vertex = 1; vertex < face.size() - 1; vertex++) // Start at 1 as our first vertex will get reused and should not be included in the calculation as to avoid a triangle with it being twice
-	{
-		/*A main vertex which can be any random one from them*/
-		uint32_t main = face[0].v;
-
-		/*The two other vertices that would form a triangle with the main one*/
-		uint32_t first = face[vertex].v;
-		uint32_t second = face[vertex + 1].v;
-
-		/*Create a new face from the old one*/
-		TriangleFacePosition tempTriangle(main, first, second);
-
-		/*Add the new triangles produced after triangulation to the array*/
-		trianglesAfterTriangulation.push_back(tempTriangle);
-	}
-
-	/*Should return a list of triangles achieved via triangulation of the face data from the file */
-	return trianglesAfterTriangulation;
-}
-
-glm::vec3 OBJReaderClass::retrieveVertexPosition(uint32_t index)
-{
-	return vertexPositions[index];
-}
-
-glm::vec3 OBJReaderClass::retrieveVertexNormal(uint32_t index)
-{
-	return vertexNormals[index];
-}
-
-glm::vec2 OBJReaderClass::retrieveVertexTextureCoordinate(uint32_t index)
-{
-	return vertexTextureCoordinates[index];
-}
-
-std::vector<Vertex> OBJReaderClass::convertToVertexObjects()
-{
-	/*Store the vertices array*/
-	std::vector<Vertex> verts;
-
-	/*Loop through the indeices*/
-	for (size_t objVertex = 0; objVertex < data.size(); objVertex++)
-	{
-		/*Get the index of the position*/
-		uint32_t positionIndex = data[objVertex].v;
-		uint32_t textureIndex = data[objVertex].vt;
-		uint32_t normalIndex = data[objVertex].vn;
-
-		/*Store the postion*/
-		glm::vec3 position = retrieveVertexPosition(positionIndex - 1);
-		glm::vec2 textureCoord = retrieveVertexTextureCoordinate(textureIndex - 1);
-		glm::vec3 normal = retrieveVertexNormal(normalIndex - 1);
-
-		/*Create a Vertex object and add to the array*/
-		Vertex vert(position, textureCoord, normal);
-		verts.push_back(vert);
-	}
-
-	assert(data.size() == verts.size());
-
-	return verts;
-}
+//glm::vec3 OBJReaderClass::retrieveVertexPosition(uint32_t index)
+//{
+//	return vertexPositions[index];
+//}
+//
+//glm::vec3 OBJReaderClass::retrieveVertexNormal(uint32_t index)
+//{
+//	return vertexNormals[index];
+//}
+//
+//glm::vec2 OBJReaderClass::retrieveVertexTextureCoordinate(uint32_t index)
+//{
+//	return vertexTextureCoordinates[index];
+//}
 
 std::vector<Vertex> OBJReaderClass::computePositionVertices()
 {
@@ -301,28 +218,27 @@ std::vector<Vertex> OBJReaderClass::computePositionVertices()
 
 	for (unsigned int vertexIndex = 0; vertexIndex < vertexPositions.size(); vertexIndex++)
 	{
+		/*Change this to accept all data, currently using only the position constructor*/
 		vertexData.push_back(vertexPositions[vertexIndex]);
 	}
 
 	return vertexData;
 }
 
-std::vector<uint32_t> OBJReaderClass::computePositionIndices()
+std::vector<uint32_t> OBJReaderClass::computePositionIndices(const std::vector<TriangleFacePosition>& trianglePositions)
 {
 	std::vector<uint32_t> indices;
 
 	/*Go through each face, and push back the array to indices*/
-	for (unsigned int index = 0; index < triangles.size(); index++)
+	for (unsigned int index = 0; index < trianglePositions.size(); index++)
 	{
-		indices.push_back(triangles[index].mainVertexIndex - 1); // v0
-		indices.push_back(triangles[index].firstVertexIndex - 1); // v1
-		indices.push_back(triangles[index].secondVertexIndex - 1); // v2
+		indices.push_back(trianglePositions[index].randomVertexIndex - 1); // v0
+		indices.push_back(trianglePositions[index].firstVertexIndex - 1); // v1
+		indices.push_back(trianglePositions[index].secondVertexIndex - 1); // v2
 	}
 
 	return indices;
 }
-
-
 
 OBJReaderClass::OBJReaderClass()
 {
