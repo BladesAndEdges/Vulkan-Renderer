@@ -107,26 +107,21 @@ bool OBJReaderClass::readObjFile()
 				}
 
 				/*Create the vertices*/
-				std::vector<Vertex> intermediateVertexArray = figureOutHowTheFuckVerticesAraMade(miniVertexArray);
+				std::vector<Vertex> intermediateVertexArray = makeVertices(miniVertexArray);
 
-				///*Triangulate the face, and return the vertex data which makes up a face*/
-				//std::vector<Vertex> intermediateVertexArray = triangulate(data);
+				/*Triangulate the vertices and return an array of triangualted faces*/
+				std::vector<Vertex> triangulatedFace = triangulate(intermediateVertexArray);
 
-				///*Add every face produced after triangulation to a larger face, which is ordered */
-				//vertices.insert(allVertexData.end(), intermediateVertexArray.begin(), intermediateVertexArray.end());
+				/*Add every face produced after triangulation to a larger face, which is ordered */
+				vertices.insert(vertices.end(), triangulatedFace.begin(), triangulatedFace.end());
 
 			}
-
-
 		}
 
-		//indices = computePositionIndices(allPositions);
+		/*Compute an unordered map by looping over the vertices after triangulation, and building a hashmap*/
+		map = createHashmapForIndices(vertices);
 
-		/*Make sure none of the arrays is empty*/
-		assert(vertexPositions.size() != 0);
-		assert(vertexTextureCoordinates.size() != 0);
-		assert(vertexNormals.size() != 0);
-		//assert(data.size() != 0);
+		/*Create the indices array*/
 
 		ifs.close(); // Close the file
 	}
@@ -134,7 +129,7 @@ bool OBJReaderClass::readObjFile()
 	return true;
 }
 
-std::vector<Vertex> OBJReaderClass::figureOutHowTheFuckVerticesAraMade(std::vector<std::string>& line)
+std::vector<Vertex> OBJReaderClass::makeVertices(std::vector<std::string>& line)
 {
 	std::vector<Vertex> vertices;
 
@@ -154,15 +149,33 @@ std::vector<Vertex> OBJReaderClass::figureOutHowTheFuckVerticesAraMade(std::vect
 		const std::string vertexNormalIndex = line[index].substr(secondBackSlashIndex + 1); // normal index
 
 		/*Convert the values to integers*/
-		const uint32_t intgerVertexPositionIndex = std::stoi(vertexPositionIndex);
-		const uint32_t integerVertexTextureCoordinateIndex = std::stoi(vertexTextureCoordinateIndex);
-		const uint32_t intgerVertexNormalIndex = std::stoi(vertexNormalIndex);
+		uint32_t intgerVertexPositionIndex = 0;
+		uint32_t integerVertexTextureCoordinateIndex = 0; // Default values in case one of them is missing as obj files usually do
+		uint32_t intgerVertexNormalIndex = 0;
 
-		/*The values*/
-		const glm::vec3 position = vertexPositions[intgerVertexPositionIndex - 1];
-		const glm::vec2 textureCoordinate = vertexTextureCoordinates[integerVertexTextureCoordinateIndex - 1];
-		const glm::vec3 normal = vertexNormals[intgerVertexNormalIndex - 1];
+		/*Default values in case values are missing*/
+		glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec2 textureCoordinate = glm::vec2(0.0f, 0.0f);
+		glm::vec3 normal = glm::vec3(0.0f, 0.0f, 0.0f);
 
+		/*Ohterwise set to the values read from file*/
+		if (vertexPositions.size() != 0)
+		{
+			intgerVertexPositionIndex = std::stoi(vertexPositionIndex) - 1;
+			position = vertexPositions[intgerVertexPositionIndex];
+		}
+
+		if (vertexTextureCoordinates.size() != 0)
+		{
+			integerVertexTextureCoordinateIndex = std::stoi(vertexTextureCoordinateIndex) - 1;
+			textureCoordinate = vertexTextureCoordinates[integerVertexTextureCoordinateIndex];
+		}
+
+		if (vertexNormals.size() != 0)
+		{
+			intgerVertexNormalIndex = std::stoi(vertexNormalIndex) - 1;
+			normal = vertexNormals[intgerVertexNormalIndex];
+		}
 
 		/*Create a new vertex and add it to the whole array*/
 		Vertex vertex(position, textureCoordinate, normal);
@@ -172,72 +185,83 @@ std::vector<Vertex> OBJReaderClass::figureOutHowTheFuckVerticesAraMade(std::vect
 	return vertices;
 }
 
-std::vector<Vertex> OBJReaderClass::triangulate(const std::vector<objVertexData> face)
+/*
+Accepts the amount of vertex data that is present in the line, in the form of a std::vector<Vertex>
+It then performs a triangulation technique, which is quite common.
+
+Uses a random chosen vertex, and simply loops over all other vertices, building up faces
+as it goes around them.
+*/
+std::vector<Vertex> OBJReaderClass::triangulate(const std::vector<Vertex>& face)
 {
-
-	/*FIIIIIX THIS*/
-
 	std::vector<Vertex> triangulatedVertexData;
 
 	/*Go through the faces*/
 	for (unsigned int vertexIndex = 1; vertexIndex < face.size() - 1; vertexIndex++)
 	{
-		Vertex randomVertex(vertexPositions[face[0].v], vertexTextureCoordinates[face[0].vt], vertexNormals[0]);
-		Vertex firstNeighbourVertex(vertexPositions[vertexIndex], vertexTextureCoordinates[vertexIndex], vertexNormals[vertexIndex]);
-		Vertex secondNeighbourVertex(vertexPositions[vertexIndex + 1], vertexTextureCoordinates[vertexIndex + 1], vertexNormals[vertexIndex + 1]);
+		/*Create a new face*/
+		Vertex randomVertex = face[0];
+		Vertex firstNeighbour = face[vertexIndex];
+		Vertex secondNeighbour = face[vertexIndex + 1];
 
+		/*Add the new face to a*/
 		triangulatedVertexData.push_back(randomVertex);
-		triangulatedVertexData.push_back(firstNeighbourVertex);
-		triangulatedVertexData.push_back(secondNeighbourVertex);
+		triangulatedVertexData.push_back(firstNeighbour);
+		triangulatedVertexData.push_back(secondNeighbour);
 	}
 
 	return triangulatedVertexData;
 }
 
-//glm::vec3 OBJReaderClass::retrieveVertexPosition(uint32_t index)
-//{
-//	return vertexPositions[index];
-//}
-//
-//glm::vec3 OBJReaderClass::retrieveVertexNormal(uint32_t index)
-//{
-//	return vertexNormals[index];
-//}
-//
-//glm::vec2 OBJReaderClass::retrieveVertexTextureCoordinate(uint32_t index)
-//{
-//	return vertexTextureCoordinates[index];
-//}
-
-std::vector<Vertex> OBJReaderClass::computePositionVertices()
+/*
+	Constructs an unordered hashmpa between an ID in the form of uint32_t and a Vertex. 
+	Essenially, this function creates a map, that would be useful for building the indices array
+	which Vulkan expects in order to construct the faces of the mesh.
+*/
+std::unordered_map<uint32_t, Vertex> OBJReaderClass::createHashmapForIndices(const std::vector<Vertex>& facesAfterTriangulation)
 {
+	/*Make sure we are not receiving an empty mesh*/
+	assert(facesAfterTriangulation.size() != 0);
 
-	std::vector < Vertex > vertexData;
+	/*Triangulated data should be divisible by 3*/
+	assert((facesAfterTriangulation.size() % 3) == 0);
 
-	OutputDebugString("Computing Vertices");
+	std::vector<Vertex> uniqueVertices;
 
-	for (unsigned int vertexIndex = 0; vertexIndex < vertexPositions.size(); vertexIndex++)
+	/*Loop over all vertices from the triangulated mesh that got computed*/
+	for (const Vertex& vertex : facesAfterTriangulation)
 	{
-		/*Change this to accept all data, currently using only the position constructor*/
-		vertexData.push_back(vertexPositions[vertexIndex]);
+		/*Assume vertex is unique at the very beginning of iteration*/
+		bool found = false;
+
+		/*Check if array already contains the element in question*/
+		for (const Vertex& uniqueVertex : uniqueVertices)
+		{
+			/*If we find a match, break the loop and mark the vertex as found and present in the array*/
+			if (vertex == uniqueVertex)
+			{
+				/*Set found to true, and exit loop, we don't have to search for it anymore*/
+				found = true;
+				break;
+			}
+		}
+
+		/*If after everything, the vertex in question has not yet been added to the unique array, add it*/
+		if (found == false)
+		{
+			uniqueVertices.push_back(vertex);
+		}
 	}
 
-	return vertexData;
-}
+	assert(uniqueVertices.size() != 0);
 
-std::vector<uint32_t> OBJReaderClass::computePositionIndices(const std::vector<TriangleFacePosition>& trianglePositions)
-{
-	std::vector<uint32_t> indices;
-
-	/*Go through each face, and push back the array to indices*/
-	for (unsigned int index = 0; index < trianglePositions.size(); index++)
+	/*Construct the unordered hashmap*/
+	for (uint32_t index = 0; index < uniqueVertices.size(); index++)
 	{
-		indices.push_back(trianglePositions[index].randomVertexIndex - 1); // v0
-		indices.push_back(trianglePositions[index].firstVertexIndex - 1); // v1
-		indices.push_back(trianglePositions[index].secondVertexIndex - 1); // v2
+		map.insert({ index, uniqueVertices[index] });
 	}
 
-	return indices;
+	return map;
 }
 
 OBJReaderClass::OBJReaderClass()

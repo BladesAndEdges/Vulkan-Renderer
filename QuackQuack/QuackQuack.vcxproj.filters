@@ -27,15 +27,6 @@
     <ClInclude Include="Vertex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TriangleFacePosition.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TriangleFaceNormal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TriangleFaceTextureCoordinate.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MeshIndexData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -54,15 +45,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Vertex.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TriangleFacePosition.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TriangleFaceNormal.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TriangleFaceTextureCoordinate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MeshIndexData.cpp">

@@ -10,7 +10,8 @@
 
 #include "Vertex.h"
 
-#include "TriangleFacePosition.h"
+#include <unordered_map>
+
 /*
 	Consider that you may actually NOT need any paramaters as all teh data is available inside the class
 */
@@ -32,6 +33,8 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
+	std::unordered_map<uint32_t, Vertex> map;
+
 	/*std::vector<TriangleFacePosition> trianglePositions;*/
 
 	/*Functions*/
@@ -39,21 +42,14 @@ private:
 	/*Reads the data from the obj file and stores it in one of the member arrays*/
 	bool readObjFile(); // Reads the obj file
 
-	std::vector<Vertex> figureOutHowTheFuckVerticesAraMade( std::vector<std::string>& line);
-	std::vector<uint32_t> parseSubstringToIntegers(std::vector<std::string>& substrings);
-	std::vector<objVertexData> convertIntegerDataToObjVertexData(const std::vector<uint32_t>& integerData) const;
+	/*Creates Vertex data from the faces read*/
+	std::vector<Vertex> makeVertices( std::vector<std::string>& line);
 
+	/*Creates the faces of the mesh via triangulation*/
+	std::vector<Vertex> triangulate(const std::vector<Vertex>& face);
 
-	std::vector<Vertex> triangulate(const std::vector<objVertexData> face);
-
-	std::vector<Vertex> computePositionVertices();
-	std::vector<uint32_t> computePositionIndices(const std::vector<TriangleFacePosition>& trianglePositions);
-
-	/*The objVertex data is in the form of indices, which match positions in the vertex postions, texture corodinates and normals arrays*/
-	/*to avoid confusion, and risking to calculate correctly he indices, these functions were created to retrieve values based on an index for us*/
-	//glm::vec3 retrieveVertexPosition(uint32_t index);
-	//glm::vec3 retrieveVertexNormal(uint32_t index);
-	//glm::vec2 retrieveVertexTextureCoordinate(uint32_t index);
+	/*Create a hash map between vertices and a uint32_t ID*/
+	std::unordered_map<uint32_t, Vertex> createHashmapForIndices(const std::vector<Vertex>& facesAfterTriangulation);
 
 public:
 
