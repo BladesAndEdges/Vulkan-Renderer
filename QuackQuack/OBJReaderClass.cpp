@@ -119,7 +119,7 @@ bool OBJReaderClass::readObjFile()
 		}
 
 		/*Compute an unordered map by looping over the vertices after triangulation, and building a hashmap*/
-		std::unordered_map<Vertex, uint32_t> vertexToIndexesHMap = createHashmapForIndices(duplicateVertices);
+		std::unordered_map<Vertex, uint32_t, KeyHasher> vertexToIndexesHMap = createHashmapForIndices(duplicateVertices);
 
 		/*Create the indices array*/
 		/*indices = createIndices(map, vertices);*/
@@ -219,9 +219,9 @@ std::vector<Vertex> OBJReaderClass::triangulate(const std::vector<Vertex>& face)
 	Essenially, this function creates a map, that would be useful for building the indices array
 	which Vulkan expects in order to construct the faces of the mesh.
 */
-std::unordered_map<Vertex, uint32_t, MyHashFunction> OBJReaderClass::createHashmapForIndices(const std::vector<Vertex>& facesAfterTriangulation)
+std::unordered_map<Vertex, uint32_t, KeyHasher> OBJReaderClass::createHashmapForIndices(const std::vector<Vertex>& facesAfterTriangulation)
 {
-	std::unordered_map<Vertex, uint32_t, MyHashFunction> verticesToIndexesMap;
+	std::unordered_map<Vertex, uint32_t, KeyHasher> verticesToIndexesMap;
 
 	/*Make sure we are not receiving an empty mesh*/
 	assert(facesAfterTriangulation.size() != 0);
@@ -233,7 +233,7 @@ std::unordered_map<Vertex, uint32_t, MyHashFunction> OBJReaderClass::createHashm
 	/*Loop over all vertices from the triangulated mesh that got computed*/
 	for (const Vertex& vertex : facesAfterTriangulation)
 	{
-		const std::unordered_map<Vertex, uint32_t, MyHashFunction>::iterator it = verticesToIndexesMap.find(vertex); // Search the map if the vertex is in the map
+		const std::unordered_map<Vertex, uint32_t, KeyHasher>::iterator it = verticesToIndexesMap.find(vertex); // Search the map if the vertex is in the map
 
 		/*If an element is not found, iterator returns the end of the map*/
 		if (it == verticesToIndexesMap.end())
@@ -243,8 +243,10 @@ std::unordered_map<Vertex, uint32_t, MyHashFunction> OBJReaderClass::createHashm
 
 			const uint32_t index = (uint32_t)(uniqueVertexData.size() - 1);
 
+			std::pair<Vertex, uint32_t> pair(vertex, index);
+
 			/*Add the element to the map as well*/
-			verticesToIndexesMap.insert(vertex, index);
+			verticesToIndexesMap[vertex] = index;
 		}
 	}
 
@@ -253,7 +255,7 @@ std::unordered_map<Vertex, uint32_t, MyHashFunction> OBJReaderClass::createHashm
 	return verticesToIndexesMap;
 }
 
-std::vector<uint32_t> OBJReaderClass::createIndices(const std::unordered_map<Vertex, uint32_t> map, const std::vector<Vertex>& triangulatedFaces)
+std::vector<uint32_t> OBJReaderClass::createIndices(const std::unordered_map<Vertex, uint32_t, KeyHasher> map, const std::vector<Vertex>& triangulatedFaces)
 {
 	std::vector<uint32_t> indices;
 

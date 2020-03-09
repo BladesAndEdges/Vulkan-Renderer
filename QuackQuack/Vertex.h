@@ -67,11 +67,16 @@ bool operator == (const Vertex& vertex1, const Vertex& vertex2);
 //	}
 
 // class for hash function 
-struct MyHashFunction {
-public:
-	// id is returned as hash function 
-	size_t operator()(const Vertex& v) const
+struct KeyHasher
+{
+	std::size_t operator()(const Vertex& v) const
 	{
-		return v.pos.x;
+		using std::size_t;
+		using std::hash;
+		using std::string;
+
+		return ((hash<float>()(v.pos.x)
+			^ (hash<float>()(v.texCoord.y) << 1)) >> 1)
+			^ (hash<float>()(v.norm.z) << 1);
 	}
 };

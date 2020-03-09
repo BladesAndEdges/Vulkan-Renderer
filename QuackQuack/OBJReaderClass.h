@@ -49,10 +49,10 @@ private:
 	std::vector<Vertex> triangulate(const std::vector<Vertex>& face);
 
 	/*Create a hash map between vertices and a uint32_t ID*/
-	std::unordered_map<Vertex, uint32_t, MyHashFunction> createHashmapForIndices(const std::vector<Vertex>& facesAfterTriangulation);
+	std::unordered_map<Vertex, uint32_t, KeyHasher> createHashmapForIndices(const std::vector<Vertex>& facesAfterTriangulation);
 
 	/*Creates the indices array that will be passed to Vulkan*/
-	std::vector<uint32_t> createIndices(const std::unordered_map<Vertex, uint32_t>, const std::vector<Vertex>& triangulatedFaces);
+	std::vector<uint32_t> createIndices(const std::unordered_map<Vertex, uint32_t, KeyHasher>, const std::vector<Vertex>& triangulatedFaces);
 
 public:
 
