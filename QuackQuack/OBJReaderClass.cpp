@@ -7,6 +7,7 @@
 #include <sstream>
 #include <algorithm>
 
+#include <iterator>
 #include <windows.h>
 
 struct Vertex;
@@ -14,7 +15,6 @@ struct Vertex;
 
 bool OBJReaderClass::readObjFile()
 {
-	std::vector<Vertex> allVertexData;
 
 	std::ifstream ifs;
 	ifs.open(fileName); // Open the file for reading
@@ -113,15 +113,16 @@ bool OBJReaderClass::readObjFile()
 				std::vector<Vertex> triangulatedFace = triangulate(intermediateVertexArray);
 
 				/*Add every face produced after triangulation to a larger face, which is ordered */
-				vertices.insert(vertices.end(), triangulatedFace.begin(), triangulatedFace.end());
+				duplicateVertices.insert(duplicateVertices.end(), triangulatedFace.begin(), triangulatedFace.end());
 
 			}
 		}
 
 		/*Compute an unordered map by looping over the vertices after triangulation, and building a hashmap*/
-		map = createHashmapForIndices(vertices);
+		std::unordered_map<Vertex, uint32_t> vertexToIndexesHMap = createHashmapForIndices(duplicateVertices);
 
 		/*Create the indices array*/
+		/*indices = createIndices(map, vertices);*/
 
 		ifs.close(); // Close the file
 	}
@@ -218,50 +219,51 @@ std::vector<Vertex> OBJReaderClass::triangulate(const std::vector<Vertex>& face)
 	Essenially, this function creates a map, that would be useful for building the indices array
 	which Vulkan expects in order to construct the faces of the mesh.
 */
-std::unordered_map<uint32_t, Vertex> OBJReaderClass::createHashmapForIndices(const std::vector<Vertex>& facesAfterTriangulation)
+std::unordered_map<Vertex, uint32_t, MyHashFunction> OBJReaderClass::createHashmapForIndices(const std::vector<Vertex>& facesAfterTriangulation)
 {
+	std::unordered_map<Vertex, uint32_t, MyHashFunction> verticesToIndexesMap;
+
 	/*Make sure we are not receiving an empty mesh*/
 	assert(facesAfterTriangulation.size() != 0);
 
 	/*Triangulated data should be divisible by 3*/
 	assert((facesAfterTriangulation.size() % 3) == 0);
 
-	std::vector<Vertex> uniqueVertices;
 
 	/*Loop over all vertices from the triangulated mesh that got computed*/
 	for (const Vertex& vertex : facesAfterTriangulation)
 	{
-		/*Assume vertex is unique at the very beginning of iteration*/
-		bool found = false;
+		const std::unordered_map<Vertex, uint32_t, MyHashFunction>::iterator it = verticesToIndexesMap.find(vertex); // Search the map if the vertex is in the map
 
-		/*Check if array already contains the element in question*/
-		for (const Vertex& uniqueVertex : uniqueVertices)
+		/*If an element is not found, iterator returns the end of the map*/
+		if (it == verticesToIndexesMap.end())
 		{
-			/*If we find a match, break the loop and mark the vertex as found and present in the array*/
-			if (vertex == uniqueVertex)
-			{
-				/*Set found to true, and exit loop, we don't have to search for it anymore*/
-				found = true;
-				break;
-			}
-		}
+			/*Add to the unique vertices array, which will get passed to Vulkan*/
+			uniqueVertexData.push_back(vertex);
 
-		/*If after everything, the vertex in question has not yet been added to the unique array, add it*/
-		if (found == false)
-		{
-			uniqueVertices.push_back(vertex);
+			const uint32_t index = (uint32_t)(uniqueVertexData.size() - 1);
+
+			/*Add the element to the map as well*/
+			verticesToIndexesMap.insert(vertex, index);
 		}
 	}
 
-	assert(uniqueVertices.size() != 0);
+	assert(uniqueVertexData.size() != 0);
 
-	/*Construct the unordered hashmap*/
-	for (uint32_t index = 0; index < uniqueVertices.size(); index++)
-	{
-		map.insert({ index, uniqueVertices[index] });
-	}
+	return verticesToIndexesMap;
+}
 
-	return map;
+std::vector<uint32_t> OBJReaderClass::createIndices(const std::unordered_map<Vertex, uint32_t> map, const std::vector<Vertex>& triangulatedFaces)
+{
+	std::vector<uint32_t> indices;
+
+	///*Go through each vertex and extract the uint32_t key*/
+	//for (const Vertex& vertex : triangulatedFaces)
+	//{
+	//	uint32_t indexValue = 
+	//}
+
+	return indices;
 }
 
 OBJReaderClass::OBJReaderClass()

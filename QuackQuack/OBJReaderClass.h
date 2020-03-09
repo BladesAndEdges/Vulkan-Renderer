@@ -28,12 +28,12 @@ private:
 	std::vector<glm::vec2> vertexTextureCoordinates; // texture coordinate per vertex
 
 	/*Intermediate stages, which we only care about in the objReaderClass*/
+	std::vector<Vertex> duplicateVertices;
 
 	/*Output data*/
-	std::vector<Vertex> vertices;
-	std::vector<uint32_t> indices;
 
-	std::unordered_map<uint32_t, Vertex> map;
+	std::vector<Vertex> uniqueVertexData;
+	std::vector<uint32_t> uniqueIndexData;
 
 	/*std::vector<TriangleFacePosition> trianglePositions;*/
 
@@ -49,7 +49,10 @@ private:
 	std::vector<Vertex> triangulate(const std::vector<Vertex>& face);
 
 	/*Create a hash map between vertices and a uint32_t ID*/
-	std::unordered_map<uint32_t, Vertex> createHashmapForIndices(const std::vector<Vertex>& facesAfterTriangulation);
+	std::unordered_map<Vertex, uint32_t, MyHashFunction> createHashmapForIndices(const std::vector<Vertex>& facesAfterTriangulation);
+
+	/*Creates the indices array that will be passed to Vulkan*/
+	std::vector<uint32_t> createIndices(const std::unordered_map<Vertex, uint32_t>, const std::vector<Vertex>& triangulatedFaces);
 
 public:
 
@@ -63,8 +66,8 @@ public:
 	std::vector<glm::vec3> getNormals() const { return vertexNormals; };
 	
 	/*The important methods*/
-	std::vector<Vertex> getVertices() const { return vertices; };
-	std::vector<uint32_t> getIndices() const { return indices; };
+	std::vector<Vertex> getVertices() const { return uniqueVertexData; };
+	std::vector<uint32_t> getIndices() const { return uniqueIndexData; };
 
 	~OBJReaderClass();
 };
