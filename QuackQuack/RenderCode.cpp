@@ -1107,7 +1107,7 @@ void RenderCode::createGraphicsPipeline()
 
 	rasterizer.rasterizerDiscardEnable = VK_FALSE; // If set to true disables any output to the the framebuffer 
 
-	rasterizer.polygonMode = VK_POLYGON_MODE_LINE; // Determines how fragments are generated for geometry
+	rasterizer.polygonMode = VK_POLYGON_MODE_FILL; // Determines how fragments are generated for geometry
 	rasterizer.lineWidth = 1.0f;
 
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT; //Type of face culling used
@@ -1888,7 +1888,7 @@ void RenderCode::updateUniformBuffer()
 																										// The second paramater is the angle of rotation, the third paramater is the axis around we are applying the rotation
 
 	/*View matrix*/
-	ubo.view = glm::lookAt(glm::vec3(20.0f, 150.0f, 60.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // The first paramater is a position vector, for the eye
+	ubo.view = glm::lookAt(glm::vec3(2.0f, 10, 6.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // The first paramater is a position vector, for the eye
 																													// The second argument is the direction vector, the way we are looking towards ( point)
 																													// The third vector defines our "up" direction
 
