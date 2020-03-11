@@ -1,4 +1,5 @@
-#version 450 // The version of glsl is important to be specified as usually there is a correspondance between the graphics api and the shading language version
+#version 450
+
 #extension GL_ARB_separate_shader_objects : enable // Enables Vulkan shaders
 
 /*The order of the in, uniform and out does not matter*/
@@ -9,14 +10,16 @@ layout(binding = 0) uniform UniformBufferObject
 	mat4 model; // model matrix
 	mat4 view; // view matrix
 	mat4 proj; // projection matrix
+	vec3 worldViewPosition;
 } ubo;
 
 /*This is vertex attributes*/
 /*They are properties specified in the vertex buffer, per vertex*/
 layout(location = 0) in vec3 inPosition;
-//layout(location = 1) in vec3 inColor;
+layout(location = 1) in vec2 inTexCoord;
+layout(location = 2) in vec3 inNormal;
 
-layout(location = 0) out vec3 fragColor;
+layout(location = 0) out vec3 worldVertexNormal;
 
 out gl_PerVertex
 {
@@ -25,8 +28,13 @@ out gl_PerVertex
 
 void main() // A main function which is invoked for every vertex on
 {
-	/*Update the position of each vertex every frame*/
-	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0); // Compute final positon in clip coordinates
+	
+	/*Matrix that takes us to world space*/
+	mat3 modelMatrix3x3 = mat3(ubo.model);
+	
+	/*The normal in world space for the fragment*/
+	worldVertexNormal = modelMatrix3x3 *  inNormal;
 
-	//fragColor = inColor;
+	/*The vertex position*/
+	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
 }

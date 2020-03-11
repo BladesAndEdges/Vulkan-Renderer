@@ -1850,7 +1850,7 @@ void RenderCode::createDescriptorSetLayout()
 	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; // Tell it is a uniform buffer object
 	uboLayoutBinding.descriptorCount = 1;
 
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // Specifies which shader the descriptor will be referenced in
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; // Specifies which shader the descriptor will be referenced in
 	uboLayoutBinding.pImmutableSamplers = nullptr;
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -1883,12 +1883,14 @@ void RenderCode::updateUniformBuffer()
 
 	UniformBufferObject ubo = {};
 
+	ubo.worldViewPosition = glm::vec3(2.0f, 10, 6.0f);
+
 	/*Model matrix*/
 	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // first param is the rotation matrix we'll apply this to, first operations so it will be identity.
 																										// The second paramater is the angle of rotation, the third paramater is the axis around we are applying the rotation
 
 	/*View matrix*/
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 10, 6.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // The first paramater is a position vector, for the eye
+	ubo.view = glm::lookAt(ubo.worldViewPosition, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // The first paramater is a position vector, for the eye
 																													// The second argument is the direction vector, the way we are looking towards ( point)
 																													// The third vector defines our "up" direction
 

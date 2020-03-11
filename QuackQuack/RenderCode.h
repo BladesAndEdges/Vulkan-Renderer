@@ -22,79 +22,19 @@
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
-//struct Vertex
-//{
-//	glm::vec2 pos;
-//	glm::vec3 color;
-//
-//	/*Specifies the stride between values in the array*/
-//	static VkVertexInputBindingDescription getBindingDescription()
-//	{
-//		VkVertexInputBindingDescription bindingDescription = {};
-//		bindingDescription.binding = 0; // layout location basically
-//		bindingDescription.stride = sizeof(Vertex); // Distance in bytes between one entry and another
-//		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // Move between entries per vertex
-//
-//
-//		return bindingDescription;
-//	}
-//
-//	static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
-//	{
-//
-//		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
-//
-//		/*Vertex position descruiption*/
-//		attributeDescriptions[0].binding = 0; // From which binding the per vertex data comes from
-//		attributeDescriptions[0].location = 0; // location directive of the input in the vertex shader
-//		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; // The type of the data, the amount of colour channels should match the number of components
-//		attributeDescriptions[0].offset = offsetof(Vertex, pos); // Calculates offset from the original struct?
-//
-//		/*Textures position description*/
-//		attributeDescriptions[1].binding = 0;
-//		attributeDescriptions[1].location = 1;
-//		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-//		attributeDescriptions[1].offset = offsetof(Vertex, color);
-//
-//		return attributeDescriptions;
-//	}
-//};
-
-
-
 /*Uniform Buffer OBject*/
 struct UniformBufferObject
 {
 	glm::mat4 model;
 	glm::mat4 view;
 	glm::mat4 proj;
+	glm::vec3 worldViewPosition;
 
 	/*
 		Data will be stored inside a buffer, and then accessed via that buffer
 		in the vertex shader.
 	*/
 };
-
-/*Data*/
-//const std::vector<Vertex> vertices = {
-//
-//	{ { -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f } },
-//	{ { 0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f } },
-//	{ { 0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } },
-//	{ { -0.5f, 0.5f },{ 1.0f, 1.0f, 1.0f } }
-//};
-
-//const std::vector<Vertex> vertices = {
-//
-//	{ {-0.5f, -0.5f, 1.0f} },
-//	{ {0.5f, -0.5f , 1.0f} },
-//	{ {0.5f, 0.5f  , 1.0f} },
-//	{ {-0.5f, 0.5f , 1.0f} }
-//};
-//
-//const std::vector<uint16_t> indices = {
-//	0, 1, 2, 2, 3, 0
-//};
 
 /*The struct which will query the device to return which families of queues are supported*/
 struct QueueFamilyIndices
