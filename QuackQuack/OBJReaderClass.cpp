@@ -156,6 +156,8 @@ std::vector<Vertex> OBJReaderClass::makeVertices(std::vector<std::string>& line)
 		glm::vec2 textureCoordinate = glm::vec2(0.0f, 0.0f);
 		glm::vec3 normal = glm::vec3(0.0f, 0.0f, 0.0f);
 
+		glm::vec2 fixedTextureCoordinates; // Avoids the inconsistency between the vertical axis between Vulkan and the obj file;
+
 		/*Ohterwise set to the values read from file*/
 		if (vertexPositions.size() != 0)
 		{
@@ -166,7 +168,11 @@ std::vector<Vertex> OBJReaderClass::makeVertices(std::vector<std::string>& line)
 		if (vertexTextureCoordinates.size() != 0)
 		{
 			integerVertexTextureCoordinateIndex = std::stoi(vertexTextureCoordinateIndex) - 1;
+
 			textureCoordinate = vertexTextureCoordinates[integerVertexTextureCoordinateIndex];
+
+			fixedTextureCoordinates.x = textureCoordinate.x;
+			fixedTextureCoordinates.y = 1.0f - textureCoordinate.y;
 		}
 
 		if (vertexNormals.size() != 0)
@@ -176,7 +182,7 @@ std::vector<Vertex> OBJReaderClass::makeVertices(std::vector<std::string>& line)
 		}
 
 		/*Create a new vertex and add it to the whole array*/
-		Vertex vertex(position, textureCoordinate, normal);
+		Vertex vertex(position, fixedTextureCoordinates, normal);
 		vertices.push_back(vertex);
 	}
 

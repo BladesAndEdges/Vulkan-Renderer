@@ -12,11 +12,14 @@ layout(binding = 0) uniform UniformBufferObject
 	vec3 worldViewPosition; 
 } ubo;
 
+layout(binding = 1) uniform sampler2D texSampler;
+
 layout(location = 0) in vec3 worldVertexNormal;// The normal vector of the vertex, expressed in world coordinates
+layout(location = 1) in vec2 worldTextureCoordinate;
 
 
 /*The fragment colour*/
-layout(location = 0) out vec3 outColour;
+layout(location = 0) out vec4 outColour;
 
 void main()
 {	
@@ -71,5 +74,5 @@ void main()
 	
 	vec3 finalLightingColour = ambientLighting + diffuseLighting + specularLighting;
 
-	outColour = finalLightingColour;
+	outColour = texture(texSampler, worldTextureCoordinate);
 }

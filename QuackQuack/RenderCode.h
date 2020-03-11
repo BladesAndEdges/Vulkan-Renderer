@@ -25,6 +25,8 @@ const int HEIGHT = 600;
 /*Uniform Buffer OBject*/
 struct UniformBufferObject
 {
+	UniformBufferObject() {};
+
 	glm::mat4 model;
 	glm::mat4 view;
 	glm::mat4 proj;
@@ -85,7 +87,6 @@ class RenderCode
 {
 
 private: // Private data, the authro most likely intended to keep rendering separate if the project was to develop in size, and have other components added to it.
-
 
 	/**********************************************DATA********************************/
 
@@ -161,6 +162,20 @@ private: // Private data, the authro most likely intended to keep rendering sepa
 	VkDescriptorPool descriptorPool; // The descriptor pool which contains the descriptor sets
 
 	VkDescriptorSet descriptorSet; //The descriptor set that will contain all ... ubos? ResourceS? Something?! 
+
+	VkImage textureImage; // // Image object as they make it faster to retrieve a value from a 2d Texture
+	VkDeviceMemory textureImageMemory;
+
+	VkImageView textureImageView;
+	VkSampler textureSampler;
+
+	UniformBufferObject ubo;
+
+	/*The coordinate frame's vectors*/
+	glm::vec3 cameraForwardVector = glm::vec3(0.0f, -1.0f, 0.0f);
+	glm::vec3 cameraUpVector = glm::vec3(0.0f, 0.0f, 1.0f);
+
+
 
 
 	/*Provides all the neccessary information Vulkan requires about our application*/
@@ -287,6 +302,24 @@ private: // Private data, the authro most likely intended to keep rendering sepa
 	void createDescriptorPool();
 
 	void createDescriptorSet();
+
+	void createTextureImage();
+
+	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+	
+	VkCommandBuffer beginSingleTimeCommands();
+
+	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+
+	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
+	void createTextureImageView();
+
+	VkImageView createImageView(VkImage image, VkFormat format);
+
+	void createTextureSampler();
 
 	/*
 	VKAPI_ATTR and VKAPI_CALL ensure that the functions has the correct signature for the API to call it.

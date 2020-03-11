@@ -20,6 +20,7 @@ layout(location = 1) in vec2 inTexCoord;
 layout(location = 2) in vec3 inNormal;
 
 layout(location = 0) out vec3 worldVertexNormal;
+layout(location = 1) out vec2 worldTextureCoordinate;
 
 out gl_PerVertex
 {
@@ -37,4 +38,7 @@ void main() // A main function which is invoked for every vertex on
 
 	/*The vertex position*/
 	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
+
+	/*The texture coordinates*/
+	worldTextureCoordinate = inTexCoord;
 }
