@@ -1883,7 +1883,7 @@ void RenderCode::updateUniformBuffer()
 
 	UniformBufferObject ubo = {};
 
-	ubo.worldViewPosition = glm::vec3(2.0f, 10, 6.0f);
+	ubo.worldViewPosition = glm::vec3(2.0f, 200.0f, 6.0f);
 
 	/*Model matrix*/
 	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // first param is the rotation matrix we'll apply this to, first operations so it will be identity.
