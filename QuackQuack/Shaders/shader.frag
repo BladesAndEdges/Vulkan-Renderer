@@ -9,7 +9,12 @@ layout(binding = 0) uniform UniformBufferObject
 	mat4 model; // model matrix
 	mat4 view; // view matrix
 	mat4 proj; // projection matrix
-	vec3 worldViewPosition; 
+	vec3 worldViewPosition;
+
+	float azimuth;
+	float zenith;
+	
+	bool toggleTextures;
 } ubo;
 
 layout(binding = 1) uniform sampler2D texSampler;
@@ -63,16 +68,19 @@ void main()
 
 	/*****SPECULAR******************************************************************************************************************/
 
-	/*Normalized eye vector*/
-	vec3 normWorldEyeVector = normalize(ubo.worldViewPosition);
+	/*Specular lighitng*/
+	vec3 normWorldEyeVector = normalize(ubo.worldViewPosition); // A vector from the vertes, to the direction of the light source in world coordinates
 	vec3 halfAngleVector = normalize( (normWorldEyeVector + normWorldLightSourceVector) / 2.0);
-	float specularDotProduct = dot(halfAngleVector, normWorldVertexNormal);
+	float specularDotProduct = dot(halfAngleVector, normWorldVertexNormal); 
 	float specularPower = pow(specularDotProduct, lightSpecularExponent);
 	vec3 specularLighting = specularIntensity * (Ks * (objectColour * specularPower));
 
 	/*****SPECULAR******************************************************************************************************************/
 	
-	vec3 finalLightingColour = ambientLighting + diffuseLighting + specularLighting;
+	vec3 finalLightingColour = ambientLighting + diffuseLighting + specularLighting; // The final lighting model is the sum of the computed 3 components in our case, as we do not have missive lighting
 
-	outColour = texture(texSampler, worldTextureCoordinate);
+
+	vec4 textureProperties = texture(texSampler, worldTextureCoordinate); // Samples the correct texture coordinate form the image
+
+	outColour = textureProperties * vec4(finalLightingColour, 1.0); // The final colour depends on both the lighting and texture
 }

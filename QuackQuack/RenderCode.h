@@ -25,12 +25,18 @@ const int HEIGHT = 600;
 /*Uniform Buffer OBject*/
 struct UniformBufferObject
 {
-	UniformBufferObject() {};
+	UniformBufferObject() : toggleTextures(true) {};
 
 	glm::mat4 model;
 	glm::mat4 view;
 	glm::mat4 proj;
 	glm::vec3 worldViewPosition;
+
+	/*Data for toggling features*/
+	bool toggleTextures;
+
+	float azimuth;
+	float zenith;
 
 	/*
 		Data will be stored inside a buffer, and then accessed via that buffer
@@ -296,6 +302,7 @@ private: // Private data, the authro most likely intended to keep rendering sepa
 	/*Sets up the unofrm buffer information*/
 	void createUniformBuffer();
 
+	/*Updates the uniform buffer data such as the matrices, and hacky arcball rotation*/
 	void updateUniformBuffer();
 
 	/*Similarly to command buffers, we cannot access them directly, so descriptor sets are allocated from a pool*/
@@ -303,7 +310,7 @@ private: // Private data, the authro most likely intended to keep rendering sepa
 
 	void createDescriptorSet();
 
-	void createTextureImage();
+	void createTextureImage(); // creates a usable texture for vulkan
 
 	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 	
@@ -313,9 +320,9 @@ private: // Private data, the authro most likely intended to keep rendering sepa
 
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
-	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height); // Copies a region of the buffer to the actual image
 
-	void createTextureImageView();
+	void createTextureImageView(); // Images are accessed via a image view, so we set up one to be able to acces it
 
 	VkImageView createImageView(VkImage image, VkFormat format);
 

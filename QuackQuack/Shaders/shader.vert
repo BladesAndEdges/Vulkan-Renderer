@@ -11,6 +11,11 @@ layout(binding = 0) uniform UniformBufferObject
 	mat4 view; // view matrix
 	mat4 proj; // projection matrix
 	vec3 worldViewPosition;
+
+	float azimuth;
+	float zenith;
+
+	bool toggleTextures;
 } ubo;
 
 /*This is vertex attributes*/

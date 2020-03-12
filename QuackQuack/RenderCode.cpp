@@ -107,24 +107,42 @@ void RenderCode::initVulkan()
 }
 
 /*A function we will use as a callback for OpenGL with GLFW (LearnOpenGl.com)*/
-void processInput(GLFWwindow* window, UniformBufferObject& ubo, glm::vec3& forward, glm::vec3& up)
+void processKeyboardInput(GLFWwindow* window, UniformBufferObject& ubo, glm::vec3& forward, glm::vec3& up)
 {
 	const float cameraSpeed = 0.05f; // adjust accordingly
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 	{
-		ubo.worldViewPosition += cameraSpeed * forward;
+		ubo.worldViewPosition += cameraSpeed * forward; // Forward trnaslation
 	}
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) // backward trnaslation
 	{
 		ubo.worldViewPosition -= cameraSpeed * forward;
 	}
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) // Left translation
 	{
 		ubo.worldViewPosition -= glm::normalize(glm::cross(forward, up)) * cameraSpeed;
 	}
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) // Right translation
 	{
 		ubo.worldViewPosition += glm::normalize(glm::cross(forward, up)) * cameraSpeed;
+	}
+
+	/*Rotating the duck model*/
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+	{
+		ubo.azimuth += 0.05f;
+	}
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+	{
+		ubo.azimuth -= 0.05f;
+	}
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+	{
+		ubo.zenith += 0.05f;
+	}
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+	{
+		ubo.zenith -= 0.05f;
 	}
 }
 
@@ -149,7 +167,7 @@ void RenderCode::mainLoop()
 		/*Checks continously for any changes that have been made and submits them immmedietely*/
 		glfwPollEvents();
 
-		processInput(window, ubo, cameraForwardVector, cameraUpVector);
+		processKeyboardInput(window, ubo, cameraForwardVector, cameraUpVector);
 
 		updateUniformBuffer();
 
@@ -182,11 +200,11 @@ void RenderCode::cleanup()
 
 	cleanupSwapChain(); // Free swap chain resources
 
-	vkDestroySampler(device, textureSampler, nullptr);
+	vkDestroySampler(device, textureSampler, nullptr); // DEstroy the sampler obect
 
-	vkDestroyImageView(device, textureImageView, nullptr);
+	vkDestroyImageView(device, textureImageView, nullptr); // Destroys the image view created for the texture loader
 
-	vkDestroyImage(device, textureImage, nullptr);
+	vkDestroyImage(device, textureImage, nullptr); 
 	vkFreeMemory(device, textureImageMemory, nullptr);
 
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr); // Destroys the pool of descriptor sets
@@ -269,7 +287,7 @@ void RenderCode::initWindow()
 
 	The fourth parameter is relevant only if we were using OpenGL.
 	*/
-	window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan Coursework 1", nullptr, nullptr);
+	window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan Coursework 2", nullptr, nullptr);
 
 	glfwSetWindowUserPointer(window, this); // Set an arbitrary pointer to our window object that we can pass to functions that require it 
 	glfwSetWindowSizeCallback(window, RenderCode::onWindowResized); // Used to specify a callback whenver a singal is issued for a resize event
@@ -1797,13 +1815,13 @@ void RenderCode::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMem
 void RenderCode::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
 	/*Memory transfer operations are executed using command Buffers*/
-	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+	VkCommandBuffer commandBuffer = beginSingleTimeCommands(); // REcords a command buffer
 
-	VkBufferCopy copyRegion = {};
+	VkBufferCopy copyRegion = {}; 
 	copyRegion.size = size; // Size of the region we want to copy
 	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-	endSingleTimeCommands(commandBuffer);
+	endSingleTimeCommands(commandBuffer); // Once it's done, we do not need it anymore so free memory associated with it
 
 }
 
@@ -1849,9 +1867,9 @@ void RenderCode::createDescriptorSetLayout()
 	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
 	samplerLayoutBinding.binding = 1;
 	samplerLayoutBinding.descriptorCount = 1;
-	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; //
 	samplerLayoutBinding.pImmutableSamplers = nullptr;
-	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; // Used only the fragment shader stage
 
 	std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -1883,8 +1901,17 @@ void RenderCode::updateUniformBuffer()
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
+	/*Start with a clean identity matrix*/
+	glm::mat4 identity = glm::mat4(1.0f);
+
+	/*Account for the duck's azimuth rotation*/
+	glm::mat4 azimuthRotation = glm::rotate(identity, glm::radians(ubo.azimuth), glm::vec3(0.0f, 1.0f, 0.0f));
+	
+	/*Zenith rotation for the duck*/
+	glm::mat4 zenithRotationOnTopOfAzimuth = glm::rotate(azimuthRotation, glm::radians(ubo.zenith), glm::vec3(0.0, 0.0, 1.0f));
+
 	/*Model matrix*/
-	ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // first param is the rotation matrix we'll apply this to, first operations so it will be identity.
+	ubo.model = zenithRotationOnTopOfAzimuth; // first param is the rotation matrix we'll apply this to, first operations so it will be identity.
 																										// The second paramater is the angle of rotation, the third paramater is the axis around we are applying the rotation
 
 	/*View matrix*/
@@ -1929,6 +1956,7 @@ void RenderCode::createDescriptorPool()
 
 void RenderCode::createDescriptorSet()
 {
+	/*Creates a descriptor set of the combined uniform buffer and texture sampler*/
 	VkDescriptorSetLayout layouts[] = { descriptorSetLayout };
 	VkDescriptorSetAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1952,6 +1980,7 @@ void RenderCode::createDescriptorSet()
 
 	std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
 
+	/*First descriptor set used for the unifor buffer*/
 	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	descriptorWrites[0].dstSet = descriptorSet;
 	descriptorWrites[0].dstBinding = 0;
@@ -1960,6 +1989,7 @@ void RenderCode::createDescriptorSet()
 	descriptorWrites[0].descriptorCount = 1;
 	descriptorWrites[0].pBufferInfo = &bufferInfo;
 
+	/*The second descriptor set for the texture sampler*/
 	descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	descriptorWrites[1].dstSet = descriptorSet;
 	descriptorWrites[1].dstBinding = 1;
@@ -2018,25 +2048,27 @@ void RenderCode::createTextureImage()
 
 void RenderCode::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 {
+	/*The paramaters for a given image are set up here*/
 	VkImageCreateInfo imageInfo = {};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageInfo.imageType = VK_IMAGE_TYPE_2D; // 2d texture
-	imageInfo.extent.width = width;
-	imageInfo.extent.height = height;
-	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = 1;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D; // 2d texture, also what kind of coordinate system Vulkan should use
+	imageInfo.extent.width = width; // The extent tells the width of the image
+	imageInfo.extent.height = height; // And height
+	imageInfo.extent.depth = 1; // The amount of texels on each axis
+	imageInfo.mipLevels = 1; // Only a single mip map leels is needed as we won't use mipamps for now
 	imageInfo.arrayLayers = 1;
-	imageInfo.format = format;
+	imageInfo.format = format; // Use the same format for the texels as those in the pixel buffer
 	imageInfo.tiling = tiling;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; // ??
 	imageInfo.usage = usage;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+	if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS) { // Create the image
 		throw std::runtime_error("failed to create image!");
 	}
 
+	/*Query the memory requirements for it's allocaiton on a staging buffer*/
 	VkMemoryRequirements memRequirements;
 	vkGetImageMemoryRequirements(device, image, &memRequirements);
 
@@ -2055,16 +2087,16 @@ void RenderCode::createImage(uint32_t width, uint32_t height, VkFormat format, V
 VkCommandBuffer RenderCode::beginSingleTimeCommands()
 {
 	VkCommandBufferAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO; // Creates and sets up the command buffer
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandPool = commandPool;
-	allocInfo.commandBufferCount = 1;
+	allocInfo.commandPool = commandPool; // Tells to which command pool the buffer belongs to
+	allocInfo.commandBufferCount = 1; 
 
 	VkCommandBuffer commandBuffer;
 	vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
 
 	VkCommandBufferBeginInfo beginInfo = {};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO; // Weqather commands will be associated with graphics commands etc
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 	vkBeginCommandBuffer(commandBuffer, &beginInfo);
@@ -2087,16 +2119,19 @@ void RenderCode::endSingleTimeCommands(VkCommandBuffer commandBuffer)
 	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
 
+/*Use an image layout barrier to transition images*/
 void RenderCode::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
 	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
 	VkImageMemoryBarrier barrier = {};
-	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.oldLayout = oldLayout;
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER; // Specifies the layout transition
+	barrier.oldLayout = oldLayout; // We care about the old image contents, so we don't specify it as undefined, although it is possible
 	barrier.newLayout = newLayout;
-	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; // Set to ignore as we are not transfering queue ownerships, be careful as their default values are not "ingore"
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.image = image;
+	barrier.image = image; // The image we are affecting
+
+	/*Subresources specify which parts of the image are affected*/
 	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	barrier.subresourceRange.baseMipLevel = 0;
 	barrier.subresourceRange.levelCount = 1;
@@ -2106,6 +2141,7 @@ void RenderCode::transitionImageLayout(VkImage image, VkFormat format, VkImageLa
 	VkPipelineStageFlags sourceStage;
 	VkPipelineStageFlags destinationStage;
 
+	/*I don't quite get what's happenign here...*/
 	if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
 		barrier.srcAccessMask = 0;
 		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -2124,6 +2160,7 @@ void RenderCode::transitionImageLayout(VkImage image, VkFormat format, VkImageLa
 		throw std::invalid_argument("unsupported layout transition!");
 	}
 
+	/*Submit the pipeline barriers*/
 	vkCmdPipelineBarrier(
 		commandBuffer,
 		sourceStage, destinationStage,
@@ -2136,12 +2173,13 @@ void RenderCode::transitionImageLayout(VkImage image, VkFormat format, VkImageLa
 	endSingleTimeCommands(commandBuffer);
 }
 
+/*Copies the buffer to the image. In particular it is a helper function which defines which parts of the buffer get copied to which parts of the iamge*/
 void RenderCode::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
 	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
 	VkBufferImageCopy region = {};
-	region.bufferOffset = 0;
-	region.bufferRowLength = 0;
+	region.bufferOffset = 0; // Byte offset in the values of the pixels
+	region.bufferRowLength = 0; // Bufferrows and bufferheight is the way pixels are laid out in memory
 	region.bufferImageHeight = 0;
 	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	region.imageSubresource.mipLevel = 0;
@@ -2152,7 +2190,7 @@ void RenderCode::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t widt
 		width,
 		height,
 		1
-	};
+	}; // Specifies to which parts of the image we want to render to
 
 	vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
@@ -2161,14 +2199,15 @@ void RenderCode::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t widt
 
 void RenderCode::createTextureImageView()
 {
-	textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_UNORM);
+	textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_UNORM); // Simplified via the helper function
 }
 
 VkImageView RenderCode::createImageView(VkImage image, VkFormat format)
 {
+	/*Creaqtes a 2d image view */
 	VkImageViewCreateInfo viewInfo = {};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewInfo.image = image;
+	viewInfo.image = image; // Passes the image
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	viewInfo.format = format;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -2190,13 +2229,15 @@ void RenderCode::createTextureSampler()
 
 	VkSamplerCreateInfo samplerInfo = {};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	samplerInfo.magFilter = VK_FILTER_LINEAR;
-	samplerInfo.minFilter = VK_FILTER_LINEAR;
+	samplerInfo.magFilter = VK_FILTER_LINEAR; // Use linear filtering, as in OpenGL
+	samplerInfo.minFilter = VK_FILTER_LINEAR; // This is similar to min and mag filtering used in OpenGL textures
 
+	/*How textures should perform around the edges, in this case it is set to repeat*/
 	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
+	/*Anisotropic filtering being enabled*/
 	samplerInfo.anisotropyEnable = VK_TRUE;
 	samplerInfo.maxAnisotropy = 16;
 
@@ -2205,6 +2246,7 @@ void RenderCode::createTextureSampler()
 	samplerInfo.compareEnable = VK_FALSE;
 	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 
+	/*Mipmaps are not enabled in this case, sp this really is trivial iun our case*/
 	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 	samplerInfo.mipLodBias = 0.0f;
 	samplerInfo.minLod = 0.0f;
