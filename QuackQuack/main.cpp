@@ -7,7 +7,7 @@
 int main()
 {
 	/*The mesh data*/
-	OBJReaderClass reader("Meshes/Duck/Duck.obj");
+	OBJReaderClass reader("Meshes/viking_room.obj");
 	const std::vector<Vertex> vertices = reader.getVertices();
 	const std::vector<uint32_t> indices = reader.getIndices();
 
