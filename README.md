@@ -2,6 +2,8 @@
 This project was a Master's year coursework in High-Performance Graphics. The goal of this project was to become familiar with using a modern Graphics API and understand the concepts behind using one.
 The project contains excessive commmenting as it was part of the marking scheme and all students were required to provide comments for a substantial amount of lines.
 
+![](QuackQuack/Screenshots/vulkanDemoMain.JPG)
+
 ## Project
 
 The project is a renderer written entirely in C++. It uses the Vulkan API and GLFW.
