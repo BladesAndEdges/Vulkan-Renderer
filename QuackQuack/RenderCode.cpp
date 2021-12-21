@@ -29,7 +29,7 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif 
 
-const std::vector<const char*> validationLayers = { "VK_LAYER_LUNARG_standard_validation"}; // Contains the string name of the validation layer, provided by the creator of the SDK, which we need.
+const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation"}; // Contains the string name of the validation layer, provided by the creator of the SDK, which we need.
 
 const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME }; // Similarly as above, we provide a list of the required extensions which we are looking for.
 
@@ -125,6 +125,14 @@ void processKeyboardInput(GLFWwindow* window, UniformBufferObject& ubo, glm::vec
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) // Right translation
 	{
 		ubo.worldViewPosition += glm::normalize(glm::cross(forward, up)) * cameraSpeed;
+	}
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) // Left translation
+	{
+		ubo.worldViewPosition += glm::normalize(up) * cameraSpeed;
+	}
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) // Right translation
+	{
+		ubo.worldViewPosition -= glm::normalize(up) * cameraSpeed;
 	}
 
 	/*Rotating the duck model*/
@@ -2011,7 +2019,7 @@ void RenderCode::createTextureImage()
 	int texChannels; // Channels
 
 	/*Read the file and gain details about the texture*/
-	stbi_uc* pixels = stbi_load("Meshes/Duck/Duck.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha); // STBI_rgb_alpha forces the texture to be loaded with an alpha channel, for consistency in futre
+	stbi_uc* pixels = stbi_load("Textures/viking_room.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha); // STBI_rgb_alpha forces the texture to be loaded with an alpha channel, for consistency in futre
 	stbi_set_flip_vertically_on_load(true);
 
 	VkDeviceSize imageSize = texWidth * texHeight * 4; // columns * rows * 4 Bytes
