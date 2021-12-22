@@ -13,7 +13,7 @@ The project is a renderer written entirely in C++. It uses the Vulkan API and GL
 It is important to mention that this project was intended for running on the University of Leeds Windows machines in the Master's Student Lab. 
 As such, the platform of choice is Windows and the IDE is Visual Studio 2017.
 
-Before running this project, ensure you have Visual Studio installed (Choise of version should not matter) and the latest version of the Vulkan SDK.
+Before running this project, ensure you have Visual Studio installed (Choice of version should not matter) and the latest version of the Vulkan SDK.
 The latest version of Visual Studio can be obtained from here:
 
 https://visualstudio.microsoft.com/vs/older-downloads/
